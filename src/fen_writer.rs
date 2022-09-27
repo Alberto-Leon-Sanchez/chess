@@ -61,7 +61,7 @@ pub fn write_fen(gameInfo: &game::GameInfo)-> String{
     fen
 }
 
-fn piece_to_letter(mut fen:String,piece: &piece::PieceType,white:bool) -> String {
+pub fn piece_to_letter(mut fen:String,piece: &piece::PieceType,white:bool) -> String {
 
     let mut piece_letter:char;
 
@@ -124,7 +124,7 @@ fn get_enpassent(gameInfo:&game::GameInfo) -> String{
     enpassent
 }
 
-fn index_to_letter_pos(index:&i8) -> String{
+pub fn index_to_letter_pos(index:&i8) -> String{
     let mut letter_pos = String::new();
     let row = index/10 - 1;
     let column = index%10 - 1;

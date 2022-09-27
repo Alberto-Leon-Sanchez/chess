@@ -22,6 +22,7 @@ struct Move{
 struct MoveFen{
     origin:i8,
     destiny:i8,
+    promotion:String,
     fen:String
 }
 
@@ -62,7 +63,9 @@ pub async fn make_move(request:tide::Request<()>) -> tide::Result{
         },
     }
     
-    let mut movement:move_gen::Move = move_gen::Move{origin:movement.origin, destiny:movement.destiny, destiny_piece};
+    let  promotion:Option<piece::PieceType> = letter_to_piece(movement.promotion);
+
+    let mut movement:move_gen::Move = move_gen::Move{origin:movement.origin, destiny:movement.destiny, destiny_piece, promotion: promotion};
     
     game_info = make_move::make_move(game_info, &mut movement);
     game_info.print_board();
@@ -76,7 +79,7 @@ pub async fn make_move(request:tide::Request<()>) -> tide::Result{
 
 fn board64_to_board120(pos:i8) -> i8{
     let mut row = pos/8;
-    let mut col = pos%8;
+    let col = pos%8;
     row = row * 10;
     
     row + col + fen_reader::ROW_OFF_SET as i8 + fen_reader::MAILBOX_OFF_SET as i8
@@ -89,4 +92,20 @@ fn board120_to_board64(pos:i8) -> i8{
     row = row*8 + col - 1;
     
     row
+}
+
+fn letter_to_piece(mut letter:String) -> Option<piece::PieceType>{
+
+    letter = letter.to_ascii_uppercase();
+
+    match letter.as_ref() {
+        "P" => Some(piece::PieceType::Pawn),
+        "N" => Some(piece::PieceType::Knight),
+        "B" => Some(piece::PieceType::Bishop),
+        "R" => Some(piece::PieceType::Rook),
+        "Q" => Some(piece::PieceType::Queen),
+        "K" => Some(piece::PieceType::King),
+        _ => None,
+    }
+
 }

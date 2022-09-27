@@ -17,6 +17,8 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
+#[derive(Copy, Clone)]
+#[derive(PartialEq)]
 pub enum Color{
     White,
     Black
@@ -31,6 +33,7 @@ impl Color{
     }
 }
 
+#[derive(Clone)]
 pub struct GameInfo{
 
     pub board:[piece::Piece;120],
@@ -70,5 +73,37 @@ impl GameInfo{
             }
             println!();
         }
+        println!();
     }
+
+    pub fn equal(&self,game:GameInfo) -> bool{
+        
+        self.print_board();
+        game.print_board();
+        for i in 0..=119{
+            if game.board[i] != self.board[i]{
+                return false;
+            }
+        }
+        
+        if self.turn != game.turn{
+            return false;
+        }
+        for i in 0..4{
+            if game.castling.last().unwrap()[i] != self.castling.last().unwrap()[i]{
+                return false;
+            }
+        }
+        if self.en_passant.last().unwrap() != game.en_passant.last().unwrap(){
+            return false;
+        }
+        if self.half_move_clock.last().unwrap() != game.half_move_clock.last().unwrap(){
+            return false;
+        }
+        if self.full_move != game.full_move{
+            return false;
+        }
+        return true;
+    }
+
 }
