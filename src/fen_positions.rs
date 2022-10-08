@@ -1,15 +1,15 @@
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct FenPositions{
-    pub fen:String,
-    pub nodes:u64,
-    pub depth:i8,
+pub struct FenPositions {
+    pub fen: String,
+    pub nodes: u64,
+    pub depth: i8,
 }
 
-pub fn get_fen_positions() -> Vec<FenPositions>{
-
-    let positions:Vec<FenPositions> = serde_json::from_str(r#"
+pub fn get_fen_positions() -> Vec<FenPositions> {
+    let positions: Vec<FenPositions> = serde_json::from_str(
+        r#"
     [
         {
            "depth":1,
@@ -136,8 +136,9 @@ pub fn get_fen_positions() -> Vec<FenPositions>{
            "nodes":23527,
            "fen":"8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1"
         }
-      ]"#).unwrap();
+      ]"#,
+    )
+    .unwrap();
 
     positions
-
 }
