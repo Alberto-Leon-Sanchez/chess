@@ -32,7 +32,7 @@ pub fn test_positions(c: &mut Criterion) {
         |b| {
             b.iter(|| {
                 perft::perft(
-                    5,
+                    6,
                     black_box(fen_reader::read_fen(
                         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ",
                     )),

@@ -17,6 +17,8 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
+pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 22);
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Color {
     White,
@@ -26,6 +28,13 @@ pub enum Color {
 impl Color {
     pub fn change_turn(&self) -> Color {
         match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+
+    pub fn opposite_color(&self) -> Color {
+        match self{
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
@@ -43,7 +52,26 @@ pub struct GameInfo {
     pub half_move_clock: Vec<u8>,
     pub full_move: i32,
     pub hash:u64,
+    pub transposition_table: Vec<eval>,
 }
+
+#[derive(Copy,Clone)]
+pub struct eval{
+    pub nodes:u64,
+    pub depth: i8,
+    pub zobrist_key: u64,
+}
+
+impl eval{
+    pub fn new() -> eval{
+        eval{
+            nodes: 0,
+            depth: 0,
+            zobrist_key: 0,
+        }
+    }
+}
+
 
 impl GameInfo {
     pub fn print_board(&self) {

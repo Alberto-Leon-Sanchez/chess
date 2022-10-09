@@ -45,6 +45,7 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
         half_move_clock,
         full_move,
         hash,
+        transposition_table: vec![game::eval::new();(game::TRANSPOSITION_TABLE_SIZE + 1) as usize],
     }
 }
 

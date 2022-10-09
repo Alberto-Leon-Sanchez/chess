@@ -1,3 +1,5 @@
+use serde::__private::de;
+
 use crate::{game, make_move, move_gen, move_notation, unmake};
 
 pub fn perft(depth: i8, mut game: game::GameInfo) -> (game::GameInfo, u64) {
@@ -11,13 +13,23 @@ pub fn perft(depth: i8, mut game: game::GameInfo) -> (game::GameInfo, u64) {
     let moves = move_gen::move_gen(&mut game);
 
     for mut movement in moves {
-        game = make_move::make_move(game, &mut movement);
-        //game.print_board();
+        
+        let index:usize = (game.hash & game::TRANSPOSITION_TABLE_SIZE) as usize;
 
-        (game, temp) = perft(depth - 1, game);
-        nodes += temp;
-        game = unmake::unmake_move(game, movement);
-        //game.print_board();
+        if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth == depth{
+            nodes += game.transposition_table[index].nodes;
+        }else{
+            game = make_move::make_move(game, &mut movement);
+
+            (game, temp) = perft(depth - 1, game);
+
+            game.transposition_table[index].nodes = temp;
+            game.transposition_table[index].depth = depth;
+            game.transposition_table[index].zobrist_key = game.hash;
+            nodes += temp;
+            game = unmake::unmake_move(game, movement);
+        }
+                
     }
 
     (game, nodes)

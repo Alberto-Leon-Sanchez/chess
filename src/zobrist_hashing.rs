@@ -43,7 +43,7 @@ impl Hash{
         }
     }
 
-    pub fn hash_move(&self,piece:PieceType,hash:&mut u64, index:i8,color:Color){
+    pub fn hash_move(&self,piece:PieceType,hash:&mut u64, index:i8,color:&Color){
 
         match color{
             Color::White=>{
@@ -53,16 +53,17 @@ impl Hash{
                 self.black_piece.hash_move(piece,hash,board120_to_board64(index));
             }
         }
-
-        *hash ^= self.turn;
-
     }
 
-    pub fn hash_castling(&self,hash:&mut u64,castling:u8){
+    pub fn hash_turn(&self,hash:&mut u64){
+        *hash ^= self.turn;
+    }
+
+    pub fn hash_castling(&self,hash:&mut u64,castling:i8){
         *hash ^= self.castling[castling as usize];
     }
 
-    pub fn hash_en_passant(&self,hash:&mut u64,en_passant:u8){
+    pub fn hash_en_passant(&self,hash:&mut u64,en_passant:i8){
         *hash ^= self.en_passant[(en_passant%10 - 1) as usize];
     }
 
