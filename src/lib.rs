@@ -11,3 +11,5 @@ pub mod perft;
 pub mod piece;
 pub mod unmake;
 pub mod zobrist_hashing;
+pub mod alpha_beta_search;
+pub mod eval;

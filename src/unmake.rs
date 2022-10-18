@@ -3,7 +3,7 @@ use crate::move_gen;
 use crate::piece;
 use crate::zobrist_hashing;
 
-pub fn unmake_move(mut game: game::GameInfo, movement: move_gen::Move) -> game::GameInfo {
+pub fn unmake_move(mut game: &mut game::GameInfo, movement: move_gen::Move){
     if matches!(game.turn, game::Color::White) {
         game.full_move -= 1;
     }
@@ -194,5 +194,4 @@ pub fn unmake_move(mut game: game::GameInfo, movement: move_gen::Move) -> game::
         _ => (),
     }
 
-    game
 }

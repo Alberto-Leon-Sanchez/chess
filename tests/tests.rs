@@ -1,5 +1,5 @@
 use chess::{
-    fen_positions::get_fen_positions, fen_reader, make_move, move_gen::{self, move_gen}, perft::perft, piece, unmake, zobrist_hashing::HASH, game
+    fen_positions::get_fen_positions, fen_reader, make_move, move_gen::{self, move_gen}, perft::perft, piece, unmake, zobrist_hashing::HASH, game, alpha_beta_search
 };
 
 #[cfg(test)]
@@ -14,7 +14,7 @@ fn en_passant() {
         promotion: None,
     };
 
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game,&mut movement);
     let compare = game.clone();
     movement = move_gen::Move {
         origin: 62,
@@ -23,8 +23,8 @@ fn en_passant() {
         promotion: None,
     };
 
-    game = make_move::make_move(game, &mut movement);
-    game = unmake::unmake_move(game, movement);
+    make_move::make_move(&mut game, &mut movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert!(game.equal(compare))
 }
@@ -40,7 +40,7 @@ fn castling_queen_side() {
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
     let mut movement2 = move_gen::Move {
         origin: 95,
@@ -48,10 +48,10 @@ fn castling_queen_side() {
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement2);
+    make_move::make_move(&mut game, &mut movement2);
 
-    game = unmake::unmake_move(game, movement2);
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement2);
+    unmake::unmake_move(&mut game, movement);
 
     assert!(game.equal(compare))
 }
@@ -67,7 +67,7 @@ fn castling_king_side() {
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
     let mut movement2 = move_gen::Move {
         origin: 95,
@@ -75,30 +75,40 @@ fn castling_king_side() {
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement2);
+    make_move::make_move(&mut game, &mut movement2);
 
-    game = unmake::unmake_move(game, movement2);
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement2);
+    unmake::unmake_move(&mut game, movement);
 
     assert!(game.equal(compare))
 }
 
 #[test]
 fn initial_position_depth_5() {
-    let game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+    
+    unsafe{
+        HASH.randomize();
+    }
+    
+    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
     let mut nodes = 0;
 
-    (_, nodes) = perft(5, game);
+    nodes = perft(5, &mut game);
 
     assert_eq!(4865609, nodes)
 }
 
 #[test]
 fn initial_position_depth_6() {
-    let game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+    
+    unsafe{
+        HASH.randomize();
+    }
+    
+    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
     let mut nodes = 0;
 
-    (_, nodes) = perft(6, game);
+    nodes = perft(6, &mut game);
 
     assert_eq!(119060324, nodes)
 }
@@ -107,11 +117,15 @@ fn initial_position_depth_6() {
 fn positions() {
     let positions = get_fen_positions();
 
+    unsafe{
+        HASH.randomize();
+    }
+
     for position in positions {
         println!("{}", position.fen);
-        let game = fen_reader::read_fen(&position.fen);
+        let mut game = fen_reader::read_fen(&position.fen);
         let mut nodes: u64 = 0;
-        (_, nodes) = perft(position.depth, game);
+        nodes = perft(position.depth, &mut game);
 
         if nodes != position.nodes {
             assert!(
@@ -142,8 +156,8 @@ fn zobrist_hashing_regular(){
         promotion: None,
     };
 
-    game = make_move::make_move(game, &mut movement);
-    game = unmake::unmake_move(game, movement);
+    make_move::make_move(&mut game, &mut movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(compare,game.hash)
 }
@@ -166,9 +180,9 @@ fn zobrist_hashing_en_passant(){
     };
 
     let compare = game.hash;
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(compare,game.hash)
 
@@ -189,7 +203,7 @@ fn zobrist_hashing_en_passant_capture(){
         promotion: None,
     };
 
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
     let compare = game.hash;
 
     movement = move_gen::Move{
@@ -198,8 +212,8 @@ fn zobrist_hashing_en_passant_capture(){
         destiny_piece: piece::Piece::Black(piece::PieceType::Pawn),
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement);
-    game = unmake::unmake_move(game, movement);
+    make_move::make_move(&mut game, &mut movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(game.hash,compare)
 
@@ -221,7 +235,7 @@ fn zobrist_hashing_castling_king_side(){
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
     let mut movement2 = move_gen::Move {
         origin: 95,
@@ -229,10 +243,10 @@ fn zobrist_hashing_castling_king_side(){
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement2);
+    make_move::make_move(&mut game, &mut movement2);
 
-    game = unmake::unmake_move(game, movement2);
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement2);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(game.hash,compare)
 
@@ -253,7 +267,7 @@ fn zobrist_hashing_castling_queen_side(){
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
     let mut movement2 = move_gen::Move {
         origin: 95,
@@ -261,10 +275,10 @@ fn zobrist_hashing_castling_queen_side(){
         destiny_piece: piece::Piece::Empty,
         promotion: None,
     };
-    game = make_move::make_move(game, &mut movement2);
+    make_move::make_move(&mut game, &mut movement2);
 
-    game = unmake::unmake_move(game, movement2);
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement2);
+     unmake::unmake_move(&mut game, movement);
 
     assert_eq!(game.hash,compare)
 }
@@ -285,9 +299,9 @@ fn zobrist_hashing_capture(){
     };
 
     let compare = game.hash;
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(game.hash,compare)
 
@@ -309,9 +323,14 @@ fn zobrist_hashing_promotion(){
     };
 
     let compare = game.hash;
-    game = make_move::make_move(game, &mut movement);
+    make_move::make_move(&mut game, &mut movement);
 
-    game = unmake::unmake_move(game, movement);
+    unmake::unmake_move(&mut game, movement);
 
     assert_eq!(game.hash,compare)
+}
+
+#[test]
+fn alpha_beta(){
+
 }

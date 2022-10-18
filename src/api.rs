@@ -72,7 +72,7 @@ pub async fn make_move(request: tide::Request<()>) -> tide::Result {
         promotion,
     };
 
-    game_info = make_move::make_move(game_info, &mut movement);
+    make_move::make_move(&mut game_info, &mut movement);
     game_info.print_board();
     let fen: String = fen_writer::write_fen(&game_info);
     println!("{}", fen);

@@ -3,7 +3,7 @@ use crate::move_gen;
 use crate::piece;
 use crate::zobrist_hashing;
 
-pub fn make_move(game: game::GameInfo, movement: &mut move_gen::Move) -> game::GameInfo {
+pub fn make_move(game: &mut game::GameInfo, movement: &mut move_gen::Move){
     
     let piece: piece::Piece = game.board[movement.origin as usize];
     match piece {
@@ -18,10 +18,10 @@ pub fn make_move(game: game::GameInfo, movement: &mut move_gen::Move) -> game::G
 }
 
 fn aux(
-    mut game: game::GameInfo,
+    mut game: &mut game::GameInfo,
     movement: &mut move_gen::Move,
     mut piece: piece::PieceType,
-) -> game::GameInfo {
+){
     
     unsafe{
         zobrist_hashing::HASH.hash_move(piece, &mut game.hash, movement.origin, &game.turn);
@@ -155,16 +155,16 @@ fn aux(
 
     game.board[movement.origin as usize] = piece::Piece::Empty;
 
-    game = update_game_state(game, piece, movement);
+    update_game_state(game, piece, movement);
     
-    game
+    
 }
 
 fn update_game_state(
-    mut game: game::GameInfo,
+    mut game: &mut game::GameInfo,
     origin_piece: piece::PieceType,
     movement: &move_gen::Move,
-) -> game::GameInfo {
+) {
     let mut castling = *game.castling.last().unwrap();
     
     match movement.destiny_piece {
@@ -283,5 +283,4 @@ fn update_game_state(
     game.turn = game.turn.change_turn();
     unsafe{zobrist_hashing::HASH.hash_turn(&mut game.hash)}
 
-    game
 }

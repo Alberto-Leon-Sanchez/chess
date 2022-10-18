@@ -19,7 +19,7 @@ const EMPTY: char = '\u{25A1}';
 
 pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 22);
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Clone,PartialEq, Eq)]
 pub enum Color {
     White,
     Black,

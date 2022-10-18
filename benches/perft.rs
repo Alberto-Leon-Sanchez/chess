@@ -19,7 +19,7 @@ pub fn test_positions(c: &mut Criterion) {
             b.iter(|| {
                 perft::perft(
                     4,
-                    black_box(fen_reader::read_fen(
+                    black_box(&mut fen_reader::read_fen(
                         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
                     )),
                 )
@@ -33,7 +33,7 @@ pub fn test_positions(c: &mut Criterion) {
             b.iter(|| {
                 perft::perft(
                     6,
-                    black_box(fen_reader::read_fen(
+                    black_box(&mut fen_reader::read_fen(
                         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ",
                     )),
                 )

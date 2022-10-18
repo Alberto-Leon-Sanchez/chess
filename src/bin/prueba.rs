@@ -11,11 +11,12 @@ fn main(){
     }
 
 
-    let game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
     let mut nodes = 0;
 
-    (_, nodes) = perft(6, game);
+    nodes = perft(6, &mut game);
 
     println!("{}",nodes);
     
+
 }
