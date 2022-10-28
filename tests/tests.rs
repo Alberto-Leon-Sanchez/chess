@@ -97,7 +97,7 @@ fn initial_position_depth_5() {
 
     assert_eq!(4865609, nodes)
 }
-
+#[ignore]
 #[test]
 fn initial_position_depth_6() {
     
@@ -331,6 +331,33 @@ fn zobrist_hashing_promotion(){
 }
 
 #[test]
-fn alpha_beta(){
+fn zobrist_hashing(){
+
+    unsafe{
+        HASH.randomize();
+    }
+
+    let positions = get_fen_positions();
+
+    for position in positions {
+        println!("{}", position.fen);
+        let mut game = fen_reader::read_fen(&position.fen);
+        
+        let moves = move_gen::move_gen(&mut game);
+
+        for mut movement in moves{
+
+            let hash = game.hash;
+            game.print_board();
+            make_move::make_move(&mut game, &mut movement);
+            unmake::unmake_move(&mut game, movement);
+            game.print_board();
+            println!("{},{}",hash,game.hash);
+            assert_eq!(hash,game.hash)
+        }
+
+    }
+
+
 
 }

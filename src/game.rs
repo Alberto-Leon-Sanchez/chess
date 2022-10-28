@@ -1,4 +1,5 @@
 use crate::fen_reader;
+use crate::move_gen;
 use crate::piece;
 
 const BLACK_KING: char = '\u{2654}';
@@ -17,7 +18,7 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
-pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 22);
+pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 
 #[derive(Clone,PartialEq, Eq)]
 pub enum Color {
@@ -52,22 +53,34 @@ pub struct GameInfo {
     pub half_move_clock: Vec<u8>,
     pub full_move: i32,
     pub hash:u64,
-    pub transposition_table: Vec<eval>,
+    pub transposition_table: Vec<Eval>,
 }
 
 #[derive(Copy,Clone)]
-pub struct eval{
-    pub nodes:u64,
-    pub depth: i8,
-    pub zobrist_key: u64,
+pub enum Flag{
+    Exact,
+    Lowerbound,
+    Upperbound
 }
 
-impl eval{
-    pub fn new() -> eval{
-        eval{
-            nodes: 0,
+#[derive(Copy,Clone)]
+pub struct Eval{
+    pub movement:move_gen::Move,
+    pub depth: i8,
+    pub zobrist_key: u64,
+    pub flag: Flag,
+    pub value: i16
+    
+}
+
+impl Eval{
+    pub fn new() -> Eval{
+        Eval{
+            movement: move_gen::Move { origin: 0, destiny: 0, destiny_piece:piece::Piece::Empty, promotion: None },
             depth: 0,
             zobrist_key: 0,
+            flag: Flag::Exact,
+            value: 0
         }
     }
 }

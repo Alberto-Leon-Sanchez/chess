@@ -12,6 +12,7 @@ const PROMOTION_TYPES: [piece::PieceType; 4] = [
     piece::PieceType::Knight,
 ];
 
+#[derive(Clone, Copy,Debug)]
 pub struct Move {
     pub origin: i8,
     pub destiny: i8,
@@ -21,7 +22,7 @@ pub struct Move {
 
 pub fn move_gen(game: &mut game::GameInfo) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
-    let (attacks, attacker_pos) = attack_gen::attack_gen(game);
+    let (attacks, attacker_pos) = attack_gen::attack_gen(game, None);
 
     let mut piece_list = &mut game.white_pieces;
     let mut opposite_piece_list = &mut game.black_pieces;
@@ -167,7 +168,7 @@ pub fn move_gen(game: &mut game::GameInfo) -> Vec<Move> {
     moves
 }
 
-fn direction_sliding(
+pub fn direction_sliding(
     piece_list: &Vec<i8>,
     board: &[piece::Piece; 120],
     turn: &game::Color,
@@ -229,7 +230,7 @@ fn direction_sliding(
     moves
 }
 
-fn knight_moves(
+pub fn knight_moves(
     piece_list: &Vec<i8>,
     board: &[piece::Piece; 120],
     turn: &game::Color,
@@ -284,7 +285,7 @@ fn knight_moves(
     moves
 }
 
-fn pawn_moves(
+pub fn pawn_moves(
     piece_list: &Vec<i8>,
     board: &mut [piece::Piece; 120],
     turn: &game::Color,
@@ -463,7 +464,7 @@ fn pawn_moves(
     moves
 }
 
-fn is_pawn_move(pos: &i8, turn: &game::Color) -> bool {
+pub fn is_pawn_move(pos: &i8, turn: &game::Color) -> bool {
     if matches!(*turn, game::Color::Black) {
         if *pos >= 81 && *pos <= 88 {
             return false;
@@ -474,7 +475,7 @@ fn is_pawn_move(pos: &i8, turn: &game::Color) -> bool {
     true
 }
 
-fn king_moves(
+pub fn king_moves(
     piece_list: &Vec<i8>,
     board: &[piece::Piece; 120],
     turn: &game::Color,

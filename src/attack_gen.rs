@@ -2,7 +2,7 @@ use crate::game;
 use crate::move_gen::{DIAGONAL_SLIDING, KNIGHT_SLIDING, LATERAL_SLIDING};
 use crate::piece;
 
-pub fn attack_gen(game: &mut game::GameInfo) -> ([u8; 120], i8) {
+pub fn attack_gen(game: &mut game::GameInfo, color: Option<&game::Color>) -> ([u8; 120], i8) {
     let mut attacks: [u8; 120] = [0; 120];
     let mut attacker_pos: i8 = 0;
 
@@ -11,10 +11,19 @@ pub fn attack_gen(game: &mut game::GameInfo) -> ([u8; 120], i8) {
 
     let mut turn = game::Color::White;
 
-    if !matches!(game.turn, game::Color::Black) {
-        piece_list = &game.black_pieces;
-        king_pos = game.white_pieces.kings.last().unwrap();
-        turn = game::Color::Black;
+    match color{
+        Some(color) if matches!(*color, game::Color::Black) => {
+            piece_list = &game.black_pieces;
+            king_pos = game.white_pieces.kings.last().unwrap();
+        },
+        None => {
+            if !matches!(game.turn, game::Color::Black) {
+                piece_list = &game.black_pieces;
+                king_pos = game.white_pieces.kings.last().unwrap();
+                turn = game::Color::Black;
+            }
+        },
+        _ => (),
     }
 
     let king = game.board[*king_pos as usize];

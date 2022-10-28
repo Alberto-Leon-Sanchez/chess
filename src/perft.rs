@@ -13,24 +13,11 @@ pub fn perft(depth: i8, mut game: &mut game::GameInfo) -> u64 {
     let moves = move_gen::move_gen(&mut game);
 
     for mut movement in moves {
-        
-        let index:usize = (game.hash & game::TRANSPOSITION_TABLE_SIZE) as usize;
-
-        if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth == depth{
-            nodes += game.transposition_table[index].nodes;
-        }else{
-
-            make_move::make_move(game, &mut movement);
-
-            temp = perft(depth - 1, game);
-
-            game.transposition_table[index].nodes = temp;
-            game.transposition_table[index].depth = depth;
-            game.transposition_table[index].zobrist_key = game.hash;
-            nodes += temp;
-            unmake::unmake_move(game, movement);
-        }
-                
+    
+        make_move::make_move(game, &mut movement);
+        temp = perft(depth - 1, game);
+        nodes += temp;
+        unmake::unmake_move(game, movement);
     }
 
     nodes
