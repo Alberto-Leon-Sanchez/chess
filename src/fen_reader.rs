@@ -77,7 +77,7 @@ fn set_pieces(board: &mut [Piece], fen: &str) {
     }
 }
 
-fn get_piece(piece: &char) -> Piece {
+pub fn get_piece(piece: &char) -> Piece {
     let mut lower: bool = true;
 
     if piece.is_uppercase() {
@@ -177,7 +177,7 @@ fn get_half_move_clock(fen: &str) -> Vec<u8> {
 fn get_full_move(fen: &str) -> i32 {
     fen.parse().expect("invalid full move clock")
 }
-fn letter_to_column(letter: char) -> u32 {
+pub fn letter_to_column(letter: char) -> u32 {
     match letter {
         'a' => 0,
         'b' => 1,

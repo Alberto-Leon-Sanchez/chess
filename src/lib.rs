@@ -13,3 +13,5 @@ pub mod unmake;
 pub mod zobrist_hashing;
 pub mod alpha_beta_search;
 pub mod eval;
+pub mod model;
+pub mod notation;

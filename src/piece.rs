@@ -178,6 +178,7 @@ impl PieceList {
             self.add_piece(&PieceType::King, &x);
         }
     }
+
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

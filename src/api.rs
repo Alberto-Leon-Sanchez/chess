@@ -80,7 +80,7 @@ pub async fn make_move(request: tide::Request<()>) -> tide::Result {
     Ok(json!(Fen { fen }).into())
 }
 
-fn board64_to_board120(pos: i8) -> i8 {
+pub fn board64_to_board120(pos: i8) -> i8 {
     let mut row = pos / 8;
     let col = pos % 8;
     row *= 10;
