@@ -1,7 +1,7 @@
 use std::hash;
 
 use chess::{
-    fen_reader, perft::perft, zobrist_hashing::HASH, alpha_beta_search, model
+    fen_reader, perft::perft, zobrist_hashing::HASH, alpha_beta_search, model, training_parser
 };
 
 fn main(){
@@ -17,6 +17,6 @@ fn main(){
 
     //println!("{},{}",best_move.origin,best_move.destiny);
     
-    model::train();
+    training_parser::test();
 
 }
