@@ -65,12 +65,12 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move{
 
     let group2 = match re.get(2){
         Some(x) => fen_reader::letter_to_column(x.as_str().chars().nth(0).unwrap()),
-        None => 0,
+        None => 200,
     };
 
     let group3 = match re.get(3){
         Some(x) => x.as_str().parse::<u32>().unwrap() - 1,
-        None => 0,
+        None => 200,
     };
 
     let capture:bool = match re.get(4){
@@ -120,24 +120,30 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move{
                 diference = 11;
             }
 
-            origin = group2 + fen_reader::ROW_OFF_SET + fen_reader::MAILBOX_OFF_SET + ((destiny) as u32 - diference);
+            origin = ((destiny) as i32 - diference) as u32;
+
         }else if piece == piece::Piece::Black(piece::PieceType::Pawn){
             
             let diference;
             
             if group2 > group5 {
-                diference = 9;
+                diference = -11;
             }else{
-                diference = 11;
+                diference = -9;
             }
-            origin = group2 + fen_reader::ROW_OFF_SET + fen_reader::MAILBOX_OFF_SET + ((destiny) as u32 + diference);
+
+            origin = ((destiny) as i32 - diference) as u32;
 
         }else{
 
             let origins = get_origin(destiny, game, piece);
 
             if origins.len() > 1{
-                origin = get_piece_in_column(origins, group2);
+                if group2 != 200{
+                    origin = get_piece_in_column(origins, group2);
+                }else{
+                    origin = get_piece_in_rank(origins, group3);
+                }
             }else{
                 origin = origins[0] as u32;
             }
@@ -146,9 +152,7 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move{
 
     }else{
 
-        //TODO: group3 puede ser 0 por lo que su asignación tambien deberia ser menor o muy alta para que pueda entrar en la condición 
-
-        if group3 < 0{
+        if group3 != 200 && group2 != 200{
             destiny = fen_reader::row_column_to_index(&group3, &group2)
         }
 
@@ -168,13 +172,19 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move{
             }
         }else{
 
-            let origins = get_origin(destiny, game, piece);
-        
+            let origins;
             if destiny == 0{
                 destiny = fen_reader::row_column_to_index(&group6, &group5);
-                origin = get_piece_in_column(origins, group2);
+                origins = get_origin(destiny, game, piece);
+
+                if group2 != 200{
+                    origin = get_piece_in_column(origins, group2);
+                }else{
+                    origin = get_piece_in_rank(origins,group3);
+                }
                 
             }else{
+                origins = get_origin(destiny, game, piece);
                 origin = origins[0] as u32;
             }
 
@@ -191,7 +201,7 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move{
 fn get_origin(destiny:usize, game: &mut game::GameInfo, piece: piece::Piece) -> Vec<usize>{
     let moves  = move_gen::move_gen(game);
     let mut origin = vec![];
-   
+    
     for movement in moves{
         if movement.destiny == destiny as i8 && game.board[movement.origin as usize] == piece{
             origin.push(movement.origin as usize);
@@ -210,3 +220,14 @@ fn get_piece_in_column(origins: Vec<usize>,column: u32) -> u32{
 
     panic!("{:?},{}",origins,column);
 }
+
+fn get_piece_in_rank(origins: Vec<usize>,rank: u32) -> u32{
+    for origin in &origins{
+        if (origin / 10 - 2) == rank as usize{
+            return *origin as u32;
+        }
+    }
+
+    panic!("{:?},{}",origins,rank);
+}
+

@@ -1,10 +1,11 @@
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
-use crate::{game::{self, GameInfo}, piece::{PieceList, Piece}};
+use crate::{game::{self, GameInfo}, piece::{PieceList, Piece}, move_gen, make_move};
 use crate::api::{board120_to_board64,board64_to_board120};
 use crate::attack_gen;
 
-const N_STEPS:i64 = 12;
-const N_UPDATES:i64 = 100000;
+const N_STEPS:i64 = 15;
+const N_EPOCHS:i64 = 10;
+const N_GAMES:i64 = 20000;
 
 #[derive(Debug)]
 struct Net{
@@ -29,7 +30,9 @@ impl Module for Net{
 }
 
 
-
+fn get_training_games() -> Vec<game::GameInfo>{
+    todo!()
+}
 
 fn pre_proccess(game: &mut game::GameInfo ) -> tch::Tensor{
     
@@ -144,8 +147,41 @@ pub fn train() -> (){
     let net = model(vs.root());
     let opt = nn::Adam::default().build(&vs, 1e-3).unwrap();
 
-    
-    
+    let mut games = get_training_games();
+
+    for epoch in 0..=N_EPOCHS{
+        for game in games.iter_mut(){
+
+            let features = pre_proccess(game);
+
+            for step in 0..=N_STEPS{
+
+                let mut moves = move_gen::move_gen(game);
+
+                if moves.len() == 0{
+                    break;
+                }
+
+                let mut best_score = -1000;
+                let mut best_move = moves.get(0).unwrap();
+
+                for movement in moves.iter_mut(){
+
+                    make_move::make_move(game, movement);
+                    let prediction = net.forward(&features);
+
+                    if prediction.int64_value(&[0]) > best_score{
+                        best_score = prediction.int64_value(&[0]);
+                        best_move = movement;
+                    }
+                }
+
+                make_move::make_move(game, todo!());
+
+
+            }
+        }
+    }
     println!("{:?}",vs.is_empty());
     println!("{:?}",vs.trainable_variables());
    
