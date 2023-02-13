@@ -163,7 +163,7 @@ pub fn train() -> (){
                 }
 
                 let mut best_score = -1000;
-                let mut best_move = moves.get(0).unwrap();
+                let mut best_move;
 
                 for movement in moves.iter_mut(){
 
@@ -175,9 +175,9 @@ pub fn train() -> (){
                         best_move = movement;
                     }
                 }
-
-                make_move::make_move(game, todo!());
-
+                
+                
+                
 
             }
         }

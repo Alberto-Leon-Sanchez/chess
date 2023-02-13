@@ -15,13 +15,17 @@ pub fn test() {
     let movement_number = regex::Regex::new(r"([0-9]*\.)").unwrap();
     let movement = regex::Regex::new(r"(([RBQKPN]?[1-8]?[a-h]?[x]?[a-h][1-8][=]?[RBQKPN]?)?((O-O-O)?(O-O)?))").unwrap();
     let mut rng = rand::thread_rng();
+    let mut checkpoint:i64 = 112185;
 
-    for line in reader.lines().skip(110566) {
+    for line in reader.lines().skip(checkpoint.try_into().unwrap()) {
         
         let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        checkpoint += 1;
 
         if line.as_ref().unwrap().starts_with("1."){
-            println!("{:?}",line);
+            let mut f_checkpoint = OpenOptions::new().create(true).write(true).truncate(true).open("/home/castor_cabron/proyectos/chess/checkpoint.txt").unwrap();
+            f_checkpoint.write_all(checkpoint.to_string().as_bytes()).unwrap();
+
             let a = movement_number.split(line.as_ref().unwrap()).collect::<Vec<&str>>();
             let max_turn = rng.gen_range(12..18);
             for (index,i) in a.iter().enumerate(){
@@ -29,7 +33,6 @@ pub fn test() {
                 if index > max_turn{
                     writer.write(fen_writer::write_fen(&game).as_bytes()).unwrap();
                     writer.write(b"\n");
-                    game.print_board();
                     break;
                 }
                 
