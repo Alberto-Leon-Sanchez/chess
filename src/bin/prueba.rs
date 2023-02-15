@@ -17,6 +17,6 @@ fn main(){
 
     //println!("{},{}",best_move.origin,best_move.destiny);
     
-    training_parser::test();
+    model::test()
 
 }
