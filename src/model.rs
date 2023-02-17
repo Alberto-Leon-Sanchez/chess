@@ -1,14 +1,14 @@
-use std::{vec, io::BufRead};
+use std::{vec, io::{BufRead, BufReader}, fs::File};
 
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
 use crate::{game::{self, GameInfo}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader};
 use crate::api::{board120_to_board64,board64_to_board120};
 use crate::attack_gen;
 
-const N_STEPS:i64 = 14;
-const N_EPOCHS:i64 = 10;
-const N_GAMES:i64 = 10;
-const LAMBDA:f64 = 0.8;
+const N_STEPS:i64 = 12;
+const N_EPOCHS:i64 = 100;
+const N_GAMES:i64 = 30;
+const LAMBDA:f64 = 0.7;
 
 #[derive(Debug)]
 struct Net{
@@ -25,7 +25,7 @@ impl Module for Net{
         let game_state = self.game_state.forward(&xs.slice(0, 384, 453, 1)).relu();
         let attacks = self.attacks.forward(&xs.slice(0, 453, 581, 1)).relu();
         let mut result = Tensor::cat(&[piece_pos, game_state, attacks], 0);
-      
+        
         result = self.hidden.forward(&result).atanh();
 
         result
@@ -36,11 +36,15 @@ impl Module for Net{
 fn get_training_games() -> Vec<game::GameInfo>{
     let mut games = vec![];
 
-    let file = std::fs::File::open("/home/castor_cabron/proyectos/chess/games.txt").unwrap();
-    let mut lines = std::io::BufReader::new(file).lines();
+    let file = File::open("/home/castor_cabron/proyectos/chess/games.txt").unwrap();
+    let reader = BufReader::new(file);
     
-    for i in 0..N_GAMES{
-        games.push(fen_reader::read_fen(&lines.nth(i as usize).unwrap().unwrap()));
+    for (i, line) in reader.lines().enumerate() {
+        let line = line.unwrap(); 
+        if i < N_GAMES as usize{
+            let game = fen_reader::read_fen(&line);
+            games.push(game);
+        }
     }
 
     games
@@ -158,16 +162,17 @@ pub fn train() -> (){
     let vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
     let mut opt = nn::Adam::default().build(&vs, 1e-3).unwrap();
-   
-    for epoch in 0..=N_EPOCHS{
+    
+    for epoch in 1..=N_EPOCHS{
+        
+        let mut accumulated_loss = 0.0;
         let mut games = get_training_games();
 
-        for (index,game) in games.iter_mut().enumerate(){
+        for game in games.iter_mut(){
 
-            let mut error:f64 = 0.0;
-            let mut last_pred:f64 = 0.0;
+            let mut results = vec![net.forward(&pre_proccess(game)).f_double_value(&[0]).unwrap()];
 
-            for step in 0..=N_STEPS{
+            for _ in 0..=N_STEPS{
 
                 let mut moves = move_gen::move_gen(game);
 
@@ -182,55 +187,49 @@ pub fn train() -> (){
 
                     make_move::make_move(game, movement);
                     let features = pre_proccess(game);
-                    
                     let prediction = net.forward(&features);
 
                     if game.turn == game::Color::White{
-                        if prediction.f_double_value(&[0]).unwrap() < best_score{
+                        if prediction.f_double_value(&[0]).unwrap() < best_score {
                             best_score = prediction.f_double_value(&[0]).unwrap();
                             best_move = *movement;
                         }
                     }else {
-                        if prediction.f_double_value(&[0]).unwrap() > best_score{
+                        if prediction.f_double_value(&[0]).unwrap() > best_score {
                             best_score = prediction.f_double_value(&[0]).unwrap();
                             best_move = *movement;
                         }
                     }
                     unmake::unmake_move(game, *movement);
-
+                    
                 }
-                
-                make_move::make_move(game, &mut best_move);
-                
 
-                
-            }
+                make_move::make_move(game, &mut best_move);
+                results.push(best_score);
             
+            }
+
+            accumulated_loss += get_loss(results);
+
+        }
+
+            let loss = tch::Tensor::of_slice(&[accumulated_loss]).set_requires_grad(true);
+            loss.backward();
             opt.step();
             opt.zero_grad();
+            println!("Epoch: {} Loss: {}", epoch, loss);
 
-            println!("Epoch: {} Game: {} Loss: {}", epoch, index, error);
-        
-        }
     }
 
 }
 
-pub fn test(){
-    let vs = nn::VarStore::new(tch::Device::Cpu);
-    let net = model(vs.root());
-    let mut opt = nn::Adam::default().build(&vs, 1e-3).unwrap();
-    let mut games = get_training_games();
-    let mut features = vec![];
-    for game in games.iter_mut(){
-        features.push(pre_proccess(game));
+fn get_loss(results: Vec<f64>) -> f64{
+    let mut loss = 0.0;
+
+    for i in 1..results.len(){
+        loss = (results[i] - results[i-1]) * LAMBDA.powf(i as f64);
     }
-
-    features = features.iter().map(|x| x.to(tch::Device::Cpu)).collect();
-    let features = Tensor::stack(&features, 0);
-    let predictions = net.forward(&features);
-
-    println!("{}",predictions);
-    
+    loss
 }
+
 

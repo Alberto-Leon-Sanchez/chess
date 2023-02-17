@@ -15,7 +15,7 @@ pub fn test() {
     let movement_number = regex::Regex::new(r"([0-9]*\.)").unwrap();
     let movement = regex::Regex::new(r"(([RBQKPN]?[1-8]?[a-h]?[x]?[a-h][1-8][=]?[RBQKPN]?)?((O-O-O)?(O-O)?))").unwrap();
     let mut rng = rand::thread_rng();
-    let mut checkpoint:i64 = 112185;
+    let mut checkpoint:i64 = 1521996;
 
     for line in reader.lines().skip(checkpoint.try_into().unwrap()) {
         

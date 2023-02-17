@@ -1,4 +1,4 @@
-use std::hash;
+use std::{hash, env};
 
 use chess::{
     fen_reader, perft::perft, zobrist_hashing::HASH, alpha_beta_search, model, training_parser
@@ -16,7 +16,7 @@ fn main(){
     //let best_move = alpha_beta_search::get_best_negamax_alpha_beta(&mut game, 5);
 
     //println!("{},{}",best_move.origin,best_move.destiny);
-    
-    model::test()
+    env::set_var("RUST_BACKTRACE", "1");
+    model::train()
 
 }

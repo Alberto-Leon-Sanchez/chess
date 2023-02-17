@@ -22,7 +22,6 @@ fn aux(
     movement: &mut move_gen::Move,
     mut piece: piece::PieceType,
 ){
-    
     unsafe{
         zobrist_hashing::HASH.hash_move(piece, &mut game.hash, movement.origin, &game.turn);
     }
@@ -166,7 +165,7 @@ fn update_game_state(
     movement: &move_gen::Move,
 ) {
     let mut castling = *game.castling.last().unwrap();
-    
+    println!("{},{}",game.half_move_clock.last().unwrap(),game.full_move);
     match movement.destiny_piece {
         piece::Piece::White(piece) => match piece {
             piece::PieceType::Rook => {
