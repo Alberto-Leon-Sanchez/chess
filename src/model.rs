@@ -9,6 +9,7 @@ const N_STEPS:i64 = 12;
 const N_EPOCHS:i64 = 100;
 const N_GAMES:i64 = 30;
 const LAMBDA:f64 = 0.7;
+const BATCH_GAMES:i64 = 20;
 
 #[derive(Debug)]
 struct Net{
@@ -33,21 +34,30 @@ impl Module for Net{
 }
 
 
-fn get_training_games() -> Vec<game::GameInfo>{
+fn get_training_games() -> Vec<String>{
     let mut games = vec![];
 
     let file = File::open("/home/castor_cabron/proyectos/chess/games.txt").unwrap();
     let reader = BufReader::new(file);
     
     for (i, line) in reader.lines().enumerate() {
-        let line = line.unwrap(); 
         if i < N_GAMES as usize{
-            let game = fen_reader::read_fen(&line);
-            games.push(game);
+            games.push(line.unwrap());
         }
     }
 
     games
+}
+
+fn get_batch(games: &vec<String>, index: i64) -> Vec<game::GameInfo>{
+    
+    let batch:Vec<game::GameInfo>;
+
+    for i in 0..BATCH_GAMES{
+        batch.push(games[i*index]);
+    }
+
+    batch
 }
 
 fn pre_proccess(game: &mut game::GameInfo ) -> tch::Tensor{
@@ -162,56 +172,64 @@ pub fn train() -> (){
     let vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
     let mut opt = nn::Adam::default().build(&vs, 1e-3).unwrap();
-    
+   
+    let mut games = get_training_games();
+    let num_batches:i64 = games.len() /BATCH_GAMES;
+
     for epoch in 1..=N_EPOCHS{
         
         let mut accumulated_loss = 0.0;
-        let mut games = get_training_games();
+        
+        for batch_num in 0..num_batches{
 
-        for game in games.iter_mut(){
+            batch = get_batch(&games, batch_num);
+        
 
-            let mut results = vec![net.forward(&pre_proccess(game)).f_double_value(&[0]).unwrap()];
+            for game in batch.iter_mut(){
 
-            for _ in 0..=N_STEPS{
+                let mut results = vec![net.forward(&pre_proccess(game)).f_double_value(&[0]).unwrap()];
 
-                let mut moves = move_gen::move_gen(game);
+                for _ in 0..=N_STEPS{
 
-                if moves.len() == 0{
-                    break;
-                }
+                    let mut moves = move_gen::move_gen(game);
 
-                let mut best_score = 0.0;
-                let mut best_move = moves[0];
-
-                for movement in moves.iter_mut(){
-
-                    make_move::make_move(game, movement);
-                    let features = pre_proccess(game);
-                    let prediction = net.forward(&features);
-
-                    if game.turn == game::Color::White{
-                        if prediction.f_double_value(&[0]).unwrap() < best_score {
-                            best_score = prediction.f_double_value(&[0]).unwrap();
-                            best_move = *movement;
-                        }
-                    }else {
-                        if prediction.f_double_value(&[0]).unwrap() > best_score {
-                            best_score = prediction.f_double_value(&[0]).unwrap();
-                            best_move = *movement;
-                        }
+                    if moves.len() == 0{
+                        break;
                     }
-                    unmake::unmake_move(game, *movement);
-                    
+
+                    let mut best_score = 0.0;
+                    let mut best_move = moves[0];
+
+                    for movement in moves.iter_mut(){
+
+                        make_move::make_move(game, movement);
+                        let features = pre_proccess(game);
+                        let prediction = net.forward(&features);
+
+                        if game.turn == game::Color::White{
+                            if prediction.f_double_value(&[0]).unwrap() < best_score {
+                                best_score = prediction.f_double_value(&[0]).unwrap();
+                                best_move = *movement;
+                            }
+                        }else {
+                            if prediction.f_double_value(&[0]).unwrap() > best_score {
+                                best_score = prediction.f_double_value(&[0]).unwrap();
+                                best_move = *movement;
+                            }
+                        }
+                        unmake::unmake_move(game, *movement);
+                        
+                    }
+
+                    make_move::make_move(game, &mut best_move);
+                    results.push(best_score);
+                
                 }
 
-                make_move::make_move(game, &mut best_move);
-                results.push(best_score);
-            
+                accumulated_loss += get_loss(results);
+
             }
-
-            accumulated_loss += get_loss(results);
-
-        }
+    }
 
             let loss = tch::Tensor::of_slice(&[accumulated_loss]).set_requires_grad(true);
             loss.backward();
