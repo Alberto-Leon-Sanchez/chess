@@ -20,7 +20,7 @@ const EMPTY: char = '\u{25A1}';
 
 pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 
-#[derive(Clone,PartialEq, Eq)]
+#[derive(Clone,PartialEq, Eq,Debug)]
 pub enum Color {
     White,
     Black,
@@ -42,7 +42,7 @@ impl Color {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct GameInfo {
     pub board: [piece::Piece; 120],
     pub white_pieces: piece::PieceList,
@@ -56,14 +56,14 @@ pub struct GameInfo {
     pub transposition_table: Vec<Eval>,
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone,Debug)]
 pub enum Flag{
     Exact,
     Lowerbound,
     Upperbound
 }
 
-#[derive(Copy,Clone)]
+#[derive(Copy,Clone,Debug)]
 pub struct Eval{
     pub movement:move_gen::Move,
     pub depth: i8,

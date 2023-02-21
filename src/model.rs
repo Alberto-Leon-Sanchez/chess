@@ -1,15 +1,16 @@
+
 use std::{vec, io::{BufRead, BufReader}, fs::File};
 
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
-use crate::{game::{self, GameInfo}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader};
+use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval};
 use crate::api::{board120_to_board64,board64_to_board120};
 use crate::attack_gen;
 
 const N_STEPS:i64 = 12;
 const N_EPOCHS:i64 = 100;
-const N_GAMES:i64 = 30;
+const N_GAMES:i64 = 100;
 const LAMBDA:f64 = 0.7;
-const BATCH_GAMES:i64 = 20;
+const BATCH_GAMES:i64 = 25;
 
 #[derive(Debug)]
 struct Net{
@@ -49,12 +50,17 @@ fn get_training_games() -> Vec<String>{
     games
 }
 
-fn get_batch(games: &vec<String>, index: i64) -> Vec<game::GameInfo>{
+fn get_batch(games: &Vec<String>, index: i64) -> Vec<game::GameInfo>{
     
-    let batch:Vec<game::GameInfo>;
+    let mut batch:Vec<game::GameInfo> = vec![];
 
-    for i in 0..BATCH_GAMES{
-        batch.push(games[i*index]);
+    for i in (index * BATCH_GAMES)..((index + 1) * BATCH_GAMES){
+
+        if i >= N_GAMES{
+            break;
+        }
+        
+        batch.push(fen_reader::read_fen(&games[i as usize]));
     }
 
     batch
@@ -171,20 +177,18 @@ fn model(vs: nn::Path) -> Net{
 pub fn train() -> (){
     let vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-    let mut opt = nn::Adam::default().build(&vs, 1e-3).unwrap();
-   
-    let mut games = get_training_games();
-    let num_batches:i64 = games.len() /BATCH_GAMES;
-
+    let mut opt = nn::Adam::default().build(&vs, 1e-1).unwrap();
+    let games = get_training_games();
+    let num_batches:i64 = (games.len() as f64 / BATCH_GAMES as f64).ceil() as i64;
+    
     for epoch in 1..=N_EPOCHS{
         
         let mut accumulated_loss = 0.0;
         
         for batch_num in 0..num_batches{
 
-            batch = get_batch(&games, batch_num);
-        
-
+            let mut batch = get_batch(&games, batch_num);
+            
             for game in batch.iter_mut(){
 
                 let mut results = vec![net.forward(&pre_proccess(game)).f_double_value(&[0]).unwrap()];
@@ -220,22 +224,36 @@ pub fn train() -> (){
                         unmake::unmake_move(game, *movement);
                         
                     }
-
+                    /* 
+                    //tdl bootstraping training
                     make_move::make_move(game, &mut best_move);
                     results.push(best_score);
+                    results.push(eval::eval(game).into());
+                    */
+                    
+                    //tdl regular training
+                    make_move::make_move(game, &mut best_move);
+                    results.push(best_score);
+                    
                 
                 }
-
+                //tdl regular training
                 accumulated_loss += get_loss(results);
-
+                //tdl bootstraping training
+                //accumulated_loss += bootstrap_get_loss(results);
+                
             }
-    }
+            
+        }
+       
+        let loss = tch::Tensor::of_slice(&[accumulated_loss]).set_requires_grad(true);
+        loss.backward();
+        println!("{:?}",vs.variables());
+        opt.step();
+        println!("{:?}",vs.variables());
 
-            let loss = tch::Tensor::of_slice(&[accumulated_loss]).set_requires_grad(true);
-            loss.backward();
-            opt.step();
-            opt.zero_grad();
-            println!("Epoch: {} Loss: {}", epoch, loss);
+        opt.zero_grad();
+        println!("Epoch: {} Loss: {}", epoch, loss);
 
     }
 
@@ -250,4 +268,39 @@ fn get_loss(results: Vec<f64>) -> f64{
     loss
 }
 
+fn bootstrap_get_loss(results: Vec<f64>) -> f64{
 
+    let mut net = vec![];
+    let mut eval = vec![];
+
+    for i in (1..results.len()).step_by(2){
+        net.push(results[i-1]);
+        eval.push(results[i]);
+    }
+
+    let mut loss = 0.0;
+
+    let mut eval_mean = 0.0;
+    for i in 0..eval.len(){
+        eval_mean += eval[i];
+    }
+    eval_mean = eval_mean / eval.len() as f64;
+
+    let mut eval_std = 0.0;
+    for i in 0..eval.len(){
+        eval_std += (eval[i] - eval_mean).powf(2.0);
+    }
+
+    eval_std = eval_std.sqrt();
+
+    for i in 0..eval.len(){
+        eval[i] = (eval[i] - eval_mean) / eval_std;
+    }
+
+
+    for i in 0..net.len(){
+        loss += net[i] + eval[i];
+    }
+
+    loss
+}

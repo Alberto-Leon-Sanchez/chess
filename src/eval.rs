@@ -78,9 +78,9 @@ pub fn eval(game:&mut game::GameInfo) -> i16{
     //temp = mobility_conectivity_eval(&mut mobility, &mut conectivity, &moves, &game.board, &game.turn);
     //println!("conectivity and mobility:{}",temp);
     //score += temp;
-    temp = center_control_eval(&attacks);
+    //temp = center_control_eval(&attacks);
     //println!("center control:{}",temp);
-    score += temp;
+    //score += temp;
 
     score * turn
 }

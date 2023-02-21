@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct PieceList {
     pub pawns: Vec<i8>,
     pub rooks: Vec<i8>,
