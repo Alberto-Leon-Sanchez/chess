@@ -1,16 +1,18 @@
 
-use std::{vec, io::{BufRead, BufReader}, fs::File};
+use std::{vec, io::{BufRead, BufReader, Write}, fs::{File, OpenOptions}};
 
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
-use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval};
+use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval::{self, eval}};
 use crate::api::{board120_to_board64,board64_to_board120};
 use crate::attack_gen;
 
-const N_STEPS:i64 = 12;
+const N_STEPS:i64 = 14;
 const N_EPOCHS:i64 = 100;
-const N_GAMES:i64 = 100;
-const LAMBDA:f64 = 0.7;
+const N_GAMES:i64 = 512;
+const LAMBDA:f64 = 0.8;
 const BATCH_GAMES:i64 = 25;
+const MAX_NOT_IMPROVED:i64 = 4;
+
 
 #[derive(Debug)]
 struct Net{
@@ -38,7 +40,7 @@ impl Module for Net{
 fn get_training_games() -> Vec<String>{
     let mut games = vec![];
 
-    let file = File::open("/home/castor_cabron/proyectos/chess/games.txt").unwrap();
+    let file = File::open("/home/castor_cabron/proyectos/chess/training_fen.txt").unwrap();
     let reader = BufReader::new(file);
     
     for (i, line) in reader.lines().enumerate() {
@@ -169,19 +171,25 @@ fn model(vs: nn::Path) -> Net{
     let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
     let hidden = tch::nn::linear(&vs, 581, 1, Default::default());
 
-    
+
     Net{piece_pos, game_state, attacks, hidden}
 
 }
 
 pub fn train() -> (){
-    let vs = nn::VarStore::new(tch::Device::Cpu);
+
+    let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-    let mut opt = nn::Adam::default().build(&vs, 1e-1).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, 1e-4).unwrap();
     let games = get_training_games();
     let num_batches:i64 = (games.len() as f64 / BATCH_GAMES as f64).ceil() as i64;
-    
-    for epoch in 1..=N_EPOCHS{
+    vs.load_from_stream(&mut File::open("/home/castor_cabron/proyectos/chess/model_weights/bootstraping_epoch_53.pt").unwrap()).unwrap();
+    let mut writer = OpenOptions::new().append(true).open("./training_data/bootstraping.txt").unwrap();
+
+    let mut lowest_lost:f64 = 1000000.0;
+    let mut not_improved:i64 = 0;
+
+    for epoch in 55..=N_EPOCHS{
         
         let mut accumulated_loss = 0.0;
         
@@ -191,9 +199,9 @@ pub fn train() -> (){
             
             for game in batch.iter_mut(){
 
-                let mut results = vec![net.forward(&pre_proccess(game)).f_double_value(&[0]).unwrap()];
+                let mut last_prediction:tch::Tensor = Tensor::of_slice(&[0.0]);
 
-                for _ in 0..=N_STEPS{
+                for step in 0..=N_STEPS{
 
                     let mut moves = move_gen::move_gen(game);
 
@@ -201,7 +209,7 @@ pub fn train() -> (){
                         break;
                     }
 
-                    let mut best_score = 0.0;
+                    let mut best_score:tch::Tensor = Tensor::of_slice(&[0.0]);
                     let mut best_move = moves[0];
 
                     for movement in moves.iter_mut(){
@@ -209,98 +217,61 @@ pub fn train() -> (){
                         make_move::make_move(game, movement);
                         let features = pre_proccess(game);
                         let prediction = net.forward(&features);
-
+                        
                         if game.turn == game::Color::White{
-                            if prediction.f_double_value(&[0]).unwrap() < best_score {
-                                best_score = prediction.f_double_value(&[0]).unwrap();
+                            if prediction.f_double_value(&[0]).unwrap() < best_score.f_double_value(&[0]).unwrap() {
+                                best_score = prediction;
                                 best_move = *movement;
                             }
                         }else {
-                            if prediction.f_double_value(&[0]).unwrap() > best_score {
-                                best_score = prediction.f_double_value(&[0]).unwrap();
+                            if prediction.f_double_value(&[0]).unwrap() > best_score.f_double_value(&[0]).unwrap() {
+                                best_score = prediction;
                                 best_move = *movement;
                             }
                         }
                         unmake::unmake_move(game, *movement);
                         
                     }
-                    /* 
-                    //tdl bootstraping training
-                    make_move::make_move(game, &mut best_move);
-                    results.push(best_score);
-                    results.push(eval::eval(game).into());
-                    */
                     
-                    //tdl regular training
+                    //let loss =  ((&best_score+last_prediction).multiply(&tch::Tensor::of_slice(&[LAMBDA]).set_requires_grad(true).pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true)))).abs();
+                    //last_prediction = best_score;
+
                     make_move::make_move(game, &mut best_move);
-                    results.push(best_score);
-                    
-                
+                    let score = tch::Tensor::of_slice(&[(eval::eval(game) as f64) / 10000.0]).set_requires_grad(true).atanh();
+                    let loss = ((&best_score+&score).multiply(&tch::Tensor::of_slice(&[LAMBDA]).set_requires_grad(true).pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true)))).abs();
+
+                    accumulated_loss += loss.f_double_value(&[0]).unwrap();
+                    loss.backward();
+                    //step bucle
                 }
-                //tdl regular training
-                accumulated_loss += get_loss(results);
-                //tdl bootstraping training
-                //accumulated_loss += bootstrap_get_loss(results);
+                //game bucle
                 
             }
+            //batch bucle
             
         }
-       
-        let loss = tch::Tensor::of_slice(&[accumulated_loss]).set_requires_grad(true);
-        loss.backward();
-        println!("{:?}",vs.variables());
+        //epoch bucle
+        let batch_loss = accumulated_loss/num_batches as f64;
         opt.step();
-        println!("{:?}",vs.variables());
-
         opt.zero_grad();
-        println!("Epoch: {} Loss: {}", epoch, loss);
 
+        println!("Epoch: {} Loss: {}", epoch, batch_loss);
+        writer.write_all(format!("{} {}\n", epoch, batch_loss).as_bytes()).unwrap();
+
+        if batch_loss < lowest_lost{
+
+            let path = format!("./model_weights/bootstraping_epoch_{}.pt", epoch);   
+            vs.save_to_stream(&mut File::create(path).unwrap()).unwrap();
+            lowest_lost = batch_loss;
+            not_improved = 0;
+
+        }else {
+            not_improved += 1;
+        }
+
+        if not_improved >= MAX_NOT_IMPROVED{
+            break;
+        }
     }
 
-}
-
-fn get_loss(results: Vec<f64>) -> f64{
-    let mut loss = 0.0;
-
-    for i in 1..results.len(){
-        loss = (results[i] - results[i-1]) * LAMBDA.powf(i as f64);
-    }
-    loss
-}
-
-fn bootstrap_get_loss(results: Vec<f64>) -> f64{
-
-    let mut net = vec![];
-    let mut eval = vec![];
-
-    for i in (1..results.len()).step_by(2){
-        net.push(results[i-1]);
-        eval.push(results[i]);
-    }
-
-    let mut loss = 0.0;
-
-    let mut eval_mean = 0.0;
-    for i in 0..eval.len(){
-        eval_mean += eval[i];
-    }
-    eval_mean = eval_mean / eval.len() as f64;
-
-    let mut eval_std = 0.0;
-    for i in 0..eval.len(){
-        eval_std += (eval[i] - eval_mean).powf(2.0);
-    }
-
-    eval_std = eval_std.sqrt();
-
-    for i in 0..eval.len(){
-        eval[i] = (eval[i] - eval_mean) / eval_std;
-    }
-
-
-    for i in 0..net.len(){
-        loss += net[i] + eval[i];
-    }
-
-    loss
 }
