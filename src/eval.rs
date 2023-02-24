@@ -65,24 +65,13 @@ pub fn eval(game:&mut game::GameInfo) -> i16{
     let mut conectivity: HashMap<i8,i16> = HashMap::new();
 
     
-    let piece_list = if game.turn == game::Color::White{
-        &game.white_pieces
-    }else{
-        &game.black_pieces
-    };
+    
+    let white = material_eval(&game.white_pieces);
+    let black = material_eval(&game.black_pieces);
 
-    temp = material_eval(piece_list);
+    score += white - black;
 
-    //println!("material:{}",temp);
-    score += temp;
-    //temp = mobility_conectivity_eval(&mut mobility, &mut conectivity, &moves, &game.board, &game.turn);
-    //println!("conectivity and mobility:{}",temp);
-    //score += temp;
-    //temp = center_control_eval(&attacks);
-    //println!("center control:{}",temp);
-    //score += temp;
-
-    score * turn
+    score
 }
 
 fn material_eval(piece_list:&piece::PieceList) ->i16{

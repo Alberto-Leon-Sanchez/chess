@@ -1,7 +1,7 @@
 
-use std::{vec, io::{BufRead, BufReader, Write}, fs::{File, OpenOptions}};
+use std::{vec, io::{BufRead, BufReader, Write}, fs::{File, OpenOptions}, time::{SystemTime, UNIX_EPOCH}};
 
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
 use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval::{self, eval}};
 use crate::api::{board120_to_board64,board64_to_board120};
@@ -9,10 +9,10 @@ use crate::attack_gen;
 
 const N_STEPS:i64 = 12;
 const N_EPOCHS:i64 = 10000;
-const N_GAMES:i64 = 512;
+const N_GAMES:i64 = 256;
 const LAMBDA:f64 = 0.7;
-const BATCH_GAMES:i64 = 40;
-const MAX_NOT_IMPROVED:i64 = 5;
+const BATCH_GAMES:i64 = 256;
+const MAX_NOT_IMPROVED:i64 = 20;
 const EVAl_PERCENTAGE:f64 = 0.2;
 
 #[derive(Debug)]
@@ -20,7 +20,9 @@ struct Net{
     piece_pos: tch::nn::Linear,
     game_state: tch::nn::Linear,
     attacks: tch::nn::Linear,
-    hidden: tch::nn::Linear,
+    hidden1: tch::nn::Linear,
+    hidden2: tch::nn::Linear,
+    hidden3: tch::nn::Linear,
 }
 
 impl Module for Net{
@@ -29,9 +31,12 @@ impl Module for Net{
         let piece_pos = self.piece_pos.forward(&xs.slice(0, 0, 384, 1)).relu();
         let game_state = self.game_state.forward(&xs.slice(0, 384, 453, 1)).relu();
         let attacks = self.attacks.forward(&xs.slice(0, 453, 581, 1)).relu();
-        let mut result = Tensor::cat(&[piece_pos, game_state, attacks], 0);
-        
-        result = self.hidden.forward(&result).atanh();
+
+        let cat = Tensor::cat(&[piece_pos, game_state, attacks], 0);
+
+        let hidden1 = self.hidden1.forward(&cat).relu();
+        let hidden2 = self.hidden2.forward(&hidden1).relu();
+        let result = self.hidden3.forward(&hidden2).tanh();
 
         result
     }
@@ -80,12 +85,16 @@ fn get_eval_games() -> Vec<String>{
 fn get_batch(games: &Vec<String>) -> Vec<game::GameInfo>{
     
     let mut batch:Vec<game::GameInfo> = vec![];    
-    let mut rng = rand::thread_rng();
-    
+
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
+   
     for _ in 0..BATCH_GAMES{
         batch.push(fen_reader::read_fen(&games[rng.gen_range(0..games.len())]));
     }
-
     batch
 }
 
@@ -143,8 +152,8 @@ fn game_state(game: &GameInfo) -> tch::Tensor{
     if castling[3] {game_state[67] = 1;}
 
     match game.turn{
-        game::Color::White => game_state[68] = 1,
-        game::Color::Black => game_state[68] = -1
+        game::Color::White => game_state[68] = 10,
+        game::Color::Black => game_state[68] = -10
     }
 
     
@@ -190,10 +199,12 @@ fn model(vs: nn::Path) -> Net{
     let piece_pos = tch::nn::linear(&vs, 384, 384, Default::default());
     let game_state = tch::nn::linear(&vs, 69, 69, Default::default());
     let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
-    let hidden = tch::nn::linear(&vs, 581, 1, Default::default());
+    let hidden1 = tch::nn::linear(&vs, 581, 581, Default::default());
+    let hidden2 = tch::nn::linear(&vs, 581, 581, Default::default());
+    let hidden3 = tch::nn::linear(&vs, 581, 1, Default::default());
 
 
-    Net{piece_pos, game_state, attacks, hidden}
+    Net{piece_pos, game_state, attacks, hidden1,hidden2,hidden3}
 
 }
 
@@ -201,41 +212,45 @@ pub fn train() -> (){
 
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-    let mut opt = nn::Adam::default().build(&vs, 1e-2).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, 0.00001).unwrap();
     
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_epoch_8.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/3_hidden_122.pt").unwrap())).unwrap();
+    opt.zero_grad();
 
     let games = get_training_games();
     let num_batches:i64 = (N_GAMES as f64 / BATCH_GAMES as f64).ceil() as i64;
-    
     let eval_games = get_eval_games();
 
-    let mut writer = OpenOptions::new().append(true).open("./training_data/lambda_0.7_games_12_lr_1e-2.txt").unwrap();
-    let mut eval_writer = OpenOptions::new().append(true).open("./training_data/Eval_lambda_0.7_games_12_lr_1e-2.txt").unwrap();
+    let mut writer = OpenOptions::new().append(true).open("./training_data/3_hidden.txt").unwrap();
+    let mut eval_writer = OpenOptions::new().append(true).open("./training_data/Eval_3_hidden.txt").unwrap();
 
     let mut lowest_lost:f64 = 1000000.0;
     let mut not_improved:i64 = 0;
 
-    for epoch in 0..=N_EPOCHS{
+    for epoch in 123..=N_EPOCHS{
         
         let mut accumulated_loss = 0.0;
         let mut eval = 0.0;
 
-        tdl_train(num_batches/2, &games, &net, &mut accumulated_loss);
-        
-        let batch_loss = accumulated_loss/num_batches as f64;
-
+        tdl_train(num_batches, &games, &net, &mut accumulated_loss);
+        //bootstraping(num_batches, &games, &net, &mut accumulated_loss);
         opt.step();
         opt.zero_grad();
 
+        let batch_loss = accumulated_loss/num_batches as f64;
+
+        println!("Epoch: {} Loss: {}", epoch, batch_loss);
+        writer.write_all(format!("{} {}\n", epoch, batch_loss).as_bytes()).unwrap();
+
         if epoch % 2 == 0{
             tdl_train(num_batches, &eval_games, &net, &mut eval);
+            //bootstraping(num_batches, &eval_games, &net, &mut eval);
             eval_writer.write_all(format!("{} {}\n", epoch, eval/num_batches as f64).as_bytes()).unwrap();
             opt.zero_grad();
 
             if (eval/num_batches as f64) < lowest_lost{
 
-                let path = format!("./model_weights/lambda_0.7_games_12_lr_1e-2_epoch_{}.pt", epoch);   
+                let path = format!("./model_weights/3_hidden_{}.pt", epoch);   
                 vs.save_to_stream(&mut File::create(path).unwrap()).unwrap();
                 lowest_lost = eval/num_batches as f64;
                 not_improved = 0;
@@ -251,23 +266,33 @@ pub fn train() -> (){
             println!("Epoch: {} Eval: {}",epoch, eval/num_batches as f64)
         }
 
-        println!("Epoch: {} Loss: {}", epoch, batch_loss);
-        writer.write_all(format!("{} {}\n", epoch, batch_loss).as_bytes()).unwrap();
+        
 
         
     }
 
 }
 
-fn tdl_train(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_loss: &mut f64) {
+fn tdl_train(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_loss: &mut f64) -> () {
+    
+    let seed = SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .unwrap()
+    .as_nanos();
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
     
     for _ in 0..num_batches{
 
         let mut batch = get_batch(games);
-    
+        
         for game in batch.iter_mut(){
 
+            let mut tmp = move_gen::move_gen(game);
+            let len = tmp.len();
+            make_move::make_move(game, &mut tmp[rng.gen_range(0..len)]);
+
             let mut last_prediction:tch::Tensor = Tensor::of_slice(&[0.0]);
+            let mut losses = vec![];
 
             for step in 0..=N_STEPS{
 
@@ -277,15 +302,25 @@ fn tdl_train(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_loss:
                     break;
                 }
 
-                let mut best_score:tch::Tensor = Tensor::of_slice(&[0.0]);
+                let mut best_score:tch::Tensor;
                 let mut best_move = moves[0];
+
+                
+                if game.turn == game::Color::White{
+                    best_score = Tensor::of_slice(&[-1000000.0]);
+                }else {
+                    best_score = Tensor::of_slice(&[1000000.0]);
+                }
+
 
                 for movement in moves.iter_mut(){
 
                     make_move::make_move(game, movement);
+                    
                     let features = pre_proccess(game);
                     let prediction = net.forward(&features);
-                
+                   
+                    
                     if game.turn == game::Color::White{
                         if prediction.f_double_value(&[0]).unwrap() < best_score.f_double_value(&[0]).unwrap() {
                             best_score = prediction;
@@ -297,27 +332,68 @@ fn tdl_train(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_loss:
                             best_move = *movement;
                         }
                     }
+
                     unmake::unmake_move(game, *movement);
                 
                 }
-                //regular tdl
-                //let loss =  ((&best_score+last_prediction).multiply(&tch::Tensor::of_slice(&[LAMBDA]).set_requires_grad(true).pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true)))).abs();
-                //last_prediction = best_score;
 
+                let loss =  get_loss(&best_score, &last_prediction, step);
+                last_prediction = best_score;
+                
                 make_move::make_move(game, &mut best_move);
-                //bootstraping
-                let score = tch::Tensor::of_slice(&[(eval::eval(game) as f64) / 10000.0]).set_requires_grad(true).atanh();
-                let loss = ((&best_score+&score).multiply(&tch::Tensor::of_slice(&[LAMBDA]).set_requires_grad(true).pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true)))).abs();
-
+               
                 *accumulated_loss += loss.f_double_value(&[0]).unwrap();
-                loss.backward();
+                losses.push(loss);
+
                 //step bucle
             }
             //game bucle
-        
+            let sum_loss = losses.iter().fold(Tensor::of_slice(&[0.0]).set_requires_grad(true), |acc, x| acc + x);
+            sum_loss.backward();
         }
         //batch bucle
-    
     }
 }
 
+fn bootstraping(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_loss: &mut f64) -> (){
+
+    let seed = SystemTime::now()
+    .duration_since(UNIX_EPOCH)
+    .unwrap()
+    .as_nanos();
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
+    
+    for _ in 0..num_batches{
+
+        let mut batch = get_batch(games);
+        let mut losses = vec![];
+
+        for game in batch.iter_mut(){
+
+            let mut tmp = move_gen::move_gen(game);
+            let len = tmp.len();
+            make_move::make_move(game, &mut tmp[rng.gen_range(0..len)]);
+
+            let prediction = net.forward(&pre_proccess(game));
+           
+            let score = tch::Tensor::of_slice(&[(eval::eval(game) as f64) / 1000.0]);
+            let loss = get_loss(&prediction, &score, 1);
+                
+            *accumulated_loss += loss.f_double_value(&[0]).unwrap();
+            losses.push(loss);
+
+        }
+        let sum_loss = losses.iter().fold(Tensor::of_slice(&[0.0]).set_requires_grad(true), |acc, x| acc + x);
+        sum_loss.backward();
+    }
+
+}
+
+fn get_loss(next_score: &Tensor, score: &Tensor, step: i64) -> Tensor {
+
+    let discount_factor = tch::Tensor::of_slice(&[LAMBDA]).set_requires_grad(true).pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true));
+    let error = (next_score-score).multiply(&discount_factor).abs();
+    let loss = error.pow(&tch::Tensor::of_slice(&[2.0]).set_requires_grad(true));
+
+    error    
+}
