@@ -1,5 +1,10 @@
 use chess::{
-    fen_positions::get_fen_positions, fen_reader, make_move, move_gen::{self, move_gen}, perft::perft, piece, unmake, zobrist_hashing::HASH, game, alpha_beta_search
+    fen_positions::get_fen_positions,
+    fen_reader, make_move,
+    move_gen::{self},
+    perft::perft,
+    piece, unmake,
+    zobrist_hashing::HASH,
 };
 
 #[cfg(test)]
@@ -14,7 +19,7 @@ fn en_passant() {
         promotion: None,
     };
 
-    make_move::make_move(&mut game,&mut movement);
+    make_move::make_move(&mut game, &mut movement);
     let compare = game.clone();
     movement = move_gen::Move {
         origin: 62,
@@ -85,12 +90,12 @@ fn castling_king_side() {
 
 #[test]
 fn initial_position_depth_5() {
-    
-    unsafe{
+    unsafe {
         HASH.randomize();
     }
-    
-    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
     let mut nodes = 0;
 
     nodes = perft(5, &mut game);
@@ -100,12 +105,12 @@ fn initial_position_depth_5() {
 #[ignore]
 #[test]
 fn initial_position_depth_6() {
-    
-    unsafe{
+    unsafe {
         HASH.randomize();
     }
-    
-    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
     let mut nodes = 0;
 
     nodes = perft(6, &mut game);
@@ -117,7 +122,7 @@ fn initial_position_depth_6() {
 fn positions() {
     let positions = get_fen_positions();
 
-    unsafe{
+    unsafe {
         HASH.randomize();
     }
 
@@ -140,13 +145,13 @@ fn positions() {
 }
 
 #[test]
-fn zobrist_hashing_regular(){
-
-    unsafe{
+fn zobrist_hashing_regular() {
+    unsafe {
         HASH.randomize();
     }
 
-    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
 
     let compare = game.hash;
     let mut movement = move_gen::Move {
@@ -159,19 +164,16 @@ fn zobrist_hashing_regular(){
     make_move::make_move(&mut game, &mut movement);
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(compare,game.hash)
+    assert_eq!(compare, game.hash)
 }
 
-
 #[test]
-fn zobrist_hashing_en_passant(){
-
-    unsafe{
+fn zobrist_hashing_en_passant() {
+    unsafe {
         HASH.randomize();
     }
 
-    let mut game =
-        fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    let mut game = fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let mut movement = move_gen::Move {
         origin: 31,
         destiny: 51,
@@ -184,19 +186,19 @@ fn zobrist_hashing_en_passant(){
 
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(compare,game.hash)
-
+    assert_eq!(compare, game.hash)
 }
 
 #[test]
-fn zobrist_hashing_en_passant_capture(){
-    unsafe{
+fn zobrist_hashing_en_passant_capture() {
+    unsafe {
         HASH.randomize();
     }
 
-    let mut game = fen_reader::read_fen("rnbqkbnr/ppppppp1/7p/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 2");
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/ppppppp1/7p/P7/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 2");
 
-    let mut movement = move_gen::Move{
+    let mut movement = move_gen::Move {
         origin: 82,
         destiny: 62,
         destiny_piece: piece::Piece::Empty,
@@ -206,23 +208,21 @@ fn zobrist_hashing_en_passant_capture(){
     make_move::make_move(&mut game, &mut movement);
     let compare = game.hash;
 
-    movement = move_gen::Move{
-        origin:61,
-        destiny:72,
+    movement = move_gen::Move {
+        origin: 61,
+        destiny: 72,
         destiny_piece: piece::Piece::Black(piece::PieceType::Pawn),
         promotion: None,
     };
     make_move::make_move(&mut game, &mut movement);
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(game.hash,compare)
-
+    assert_eq!(game.hash, compare)
 }
 
 #[test]
-fn zobrist_hashing_castling_king_side(){
-    
-    unsafe{
+fn zobrist_hashing_castling_king_side() {
+    unsafe {
         HASH.randomize();
     }
 
@@ -248,13 +248,12 @@ fn zobrist_hashing_castling_king_side(){
     unmake::unmake_move(&mut game, movement2);
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(game.hash,compare)
-
+    assert_eq!(game.hash, compare)
 }
 
 #[test]
-fn zobrist_hashing_castling_queen_side(){
-    unsafe{
+fn zobrist_hashing_castling_queen_side() {
+    unsafe {
         HASH.randomize();
     }
 
@@ -278,22 +277,23 @@ fn zobrist_hashing_castling_queen_side(){
     make_move::make_move(&mut game, &mut movement2);
 
     unmake::unmake_move(&mut game, movement2);
-     unmake::unmake_move(&mut game, movement);
+    unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(game.hash,compare)
+    assert_eq!(game.hash, compare)
 }
 
 #[test]
-fn zobrist_hashing_capture(){
-    unsafe{
+fn zobrist_hashing_capture() {
+    unsafe {
         HASH.randomize();
     }
 
-    let mut game = fen_reader::read_fen("rnbqkbnr/ppppppp1/P7/8/7p/8/1PPPPPPP/RNBQKBNR w KQkq - 0 4");
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/ppppppp1/P7/8/7p/8/1PPPPPPP/RNBQKBNR w KQkq - 0 4");
 
-    let mut movement  = move_gen::Move{
-        origin:71,
-        destiny:82,
+    let mut movement = move_gen::Move {
+        origin: 71,
+        destiny: 82,
         destiny_piece: piece::Piece::Black(piece::PieceType::Pawn),
         promotion: None,
     };
@@ -303,21 +303,21 @@ fn zobrist_hashing_capture(){
 
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(game.hash,compare)
-
+    assert_eq!(game.hash, compare)
 }
 
 #[test]
-fn zobrist_hashing_promotion(){
-    unsafe{
+fn zobrist_hashing_promotion() {
+    unsafe {
         HASH.randomize();
     }
 
-    let mut game = fen_reader::read_fen("rnbqkbnr/pPppppp1/8/8/8/7p/1PPPPPPP/RNBQKBNR w KQkq - 0 5");
+    let mut game =
+        fen_reader::read_fen("rnbqkbnr/pPppppp1/8/8/8/7p/1PPPPPPP/RNBQKBNR w KQkq - 0 5");
 
-    let mut movement  = move_gen::Move{
-        origin:82,
-        destiny:91,
+    let mut movement = move_gen::Move {
+        origin: 82,
+        destiny: 91,
         destiny_piece: piece::Piece::Black(piece::PieceType::Pawn),
         promotion: Some(piece::PieceType::Queen),
     };
@@ -327,13 +327,12 @@ fn zobrist_hashing_promotion(){
 
     unmake::unmake_move(&mut game, movement);
 
-    assert_eq!(game.hash,compare)
+    assert_eq!(game.hash, compare)
 }
 
 #[test]
-fn zobrist_hashing(){
-
-    unsafe{
+fn zobrist_hashing() {
+    unsafe {
         HASH.randomize();
     }
 
@@ -342,22 +341,17 @@ fn zobrist_hashing(){
     for position in positions {
         println!("{}", position.fen);
         let mut game = fen_reader::read_fen(&position.fen);
-        
+
         let moves = move_gen::move_gen(&mut game);
 
-        for mut movement in moves{
-
+        for mut movement in moves {
             let hash = game.hash;
             game.print_board();
             make_move::make_move(&mut game, &mut movement);
             unmake::unmake_move(&mut game, movement);
             game.print_board();
-            println!("{},{}",hash,game.hash);
-            assert_eq!(hash,game.hash)
+            println!("{},{}", hash, game.hash);
+            assert_eq!(hash, game.hash)
         }
-
     }
-
-
-
 }

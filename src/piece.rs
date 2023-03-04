@@ -1,4 +1,4 @@
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct PieceList {
     pub pawns: Vec<i8>,
     pub rooks: Vec<i8>,
@@ -178,7 +178,6 @@ impl PieceList {
             self.add_piece(&PieceType::King, &x);
         }
     }
-
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

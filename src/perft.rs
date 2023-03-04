@@ -13,7 +13,6 @@ pub fn perft(depth: i8, mut game: &mut game::GameInfo) -> u64 {
     let moves = move_gen::move_gen(&mut game);
 
     for mut movement in moves {
-    
         make_move::make_move(game, &mut movement);
         temp = perft(depth - 1, game);
         nodes += temp;

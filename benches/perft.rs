@@ -27,19 +27,16 @@ pub fn test_positions(c: &mut Criterion) {
         },
     );
 
-    group.bench_function(
-        "initial position depth 5",
-        |b| {
-            b.iter(|| {
-                perft::perft(
-                    6,
-                    black_box(&mut fen_reader::read_fen(
-                        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ",
-                    )),
-                )
-            })
-        },
-    );
+    group.bench_function("initial position depth 5", |b| {
+        b.iter(|| {
+            perft::perft(
+                6,
+                black_box(&mut fen_reader::read_fen(
+                    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ",
+                )),
+            )
+        })
+    });
 }
 
 criterion_group!(benches, test_positions);

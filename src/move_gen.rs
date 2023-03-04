@@ -14,7 +14,7 @@ const PROMOTION_TYPES: [piece::PieceType; 4] = [
     piece::PieceType::Knight,
 ];
 
-#[derive(Clone, Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Move {
     pub origin: i8,
     pub destiny: i8,
@@ -22,11 +22,12 @@ pub struct Move {
     pub promotion: Option<piece::PieceType>,
 }
 
-
-impl PartialEq for Move{
+impl PartialEq for Move {
     fn eq(&self, other: &Self) -> bool {
-        self.origin == other.origin && self.destiny == other.destiny
-        && self.destiny_piece == other.destiny_piece && self.promotion == other.promotion
+        self.origin == other.origin
+            && self.destiny == other.destiny
+            && self.destiny_piece == other.destiny_piece
+            && self.promotion == other.promotion
     }
 }
 
@@ -40,9 +41,6 @@ impl Move {
         }
     }
 }
-
-
-
 
 pub fn move_gen(game: &mut game::GameInfo) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();

@@ -28,15 +28,21 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
     let half_move_clock = get_half_move_clock(split[4]);
 
     let full_move;
-    if split.len() == 6{
+    if split.len() == 6 {
         full_move = get_full_move(split[5]);
-    }else {
+    } else {
         full_move = 0;
     }
     let hash;
 
-    unsafe{
-        hash = HASH.get_hash(&black_pieces, &white_pieces, &turn, &castling.last().unwrap(), &en_passant.last().unwrap());
+    unsafe {
+        hash = HASH.get_hash(
+            &black_pieces,
+            &white_pieces,
+            &turn,
+            &castling.last().unwrap(),
+            &en_passant.last().unwrap(),
+        );
     }
 
     game::GameInfo {
@@ -49,7 +55,7 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
         half_move_clock,
         full_move,
         hash,
-        transposition_table: vec![game::Eval::new();(game::TRANSPOSITION_TABLE_SIZE + 1) as usize],
+        transposition_table: vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE + 1) as usize],
     }
 }
 
@@ -186,7 +192,6 @@ fn get_full_move(fen: &str) -> i32 {
         Ok(move_number) => move_number,
         Err(_) => 0,
     }
-
 }
 pub fn letter_to_column(letter: char) -> u32 {
     match letter {

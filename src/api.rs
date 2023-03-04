@@ -32,9 +32,9 @@ struct MoveFen {
 }
 
 #[derive(Deserialize)]
-struct BestMove{
+struct BestMove {
     fen: String,
-    depth: i8
+    depth: i8,
 }
 
 pub async fn get_moves(request: tide::Request<()>) -> tide::Result {
@@ -92,22 +92,23 @@ pub async fn make_move(request: tide::Request<()>) -> tide::Result {
 }
 
 pub async fn get_best(request: tide::Request<()>) -> tide::Result {
-    
     let query: BestMove = request.query()?;
     let depth = query.depth;
     let mut game = fen_reader::read_fen(&query.fen);
 
     let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
     let net = model::model(vs.root());
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/3_hidden_1014.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(
+        File::open("./model_weights/3_hidden_1014.pt").unwrap(),
+    ))
+    .unwrap();
 
     let mut movement = alpha_beta_search::get_best(&mut game, depth, &net);
     make_move::make_move(&mut game, &mut movement);
     let fen = fen_writer::write_fen(&game);
 
-    Ok(json!(Fen{fen}).into())
+    Ok(json!(Fen { fen }).into())
 }
-
 
 pub fn board64_to_board120(pos: i8) -> i8 {
     let mut row = pos / 8;

@@ -3,8 +3,7 @@ use crate::move_gen;
 use crate::piece;
 use crate::zobrist_hashing;
 
-pub fn make_move(game: &mut game::GameInfo, movement: &mut move_gen::Move){
-    
+pub fn make_move(game: &mut game::GameInfo, movement: &mut move_gen::Move) {
     let piece: piece::Piece = game.board[movement.origin as usize];
     match piece {
         piece::Piece::Empty => {
@@ -17,17 +16,12 @@ pub fn make_move(game: &mut game::GameInfo, movement: &mut move_gen::Move){
     }
 }
 
-fn aux(
-    mut game: &mut game::GameInfo,
-    movement: &mut move_gen::Move,
-    mut piece: piece::PieceType,
-){
-    unsafe{
+fn aux(mut game: &mut game::GameInfo, movement: &mut move_gen::Move, mut piece: piece::PieceType) {
+    unsafe {
         zobrist_hashing::HASH.hash_move(piece, &mut game.hash, movement.origin, &game.turn);
     }
 
     if let Some(piece_type) = movement.promotion {
-        
         piece = piece_type;
 
         match game.turn {
@@ -43,11 +37,11 @@ fn aux(
             }
         }
     }
-    
-    unsafe{
+
+    unsafe {
         zobrist_hashing::HASH.hash_move(piece, &mut game.hash, movement.destiny, &game.turn);
     }
-  
+
     let mut square_diference: i8 = 10;
 
     match game.turn {
@@ -70,33 +64,71 @@ fn aux(
 
             match game.turn {
                 game::Color::White => {
-                    game
-                    .black_pieces
-                    .remove(&piece::PieceType::Pawn, *pos - square_diference);
+                    game.black_pieces
+                        .remove(&piece::PieceType::Pawn, *pos - square_diference);
 
-                    unsafe{zobrist_hashing::HASH.hash_move(piece::PieceType::Pawn, &mut game.hash, *pos-square_diference, &game::Color::Black);}
-                },
-                game::Color::Black => {game
-                    .white_pieces
-                    .remove(&piece::PieceType::Pawn, *pos - square_diference);
+                    unsafe {
+                        zobrist_hashing::HASH.hash_move(
+                            piece::PieceType::Pawn,
+                            &mut game.hash,
+                            *pos - square_diference,
+                            &game::Color::Black,
+                        );
+                    }
+                }
+                game::Color::Black => {
+                    game.white_pieces
+                        .remove(&piece::PieceType::Pawn, *pos - square_diference);
 
-                    unsafe{zobrist_hashing::HASH.hash_move(piece::PieceType::Pawn, &mut game.hash, *pos-square_diference, &game::Color::White);}
-                },
+                    unsafe {
+                        zobrist_hashing::HASH.hash_move(
+                            piece::PieceType::Pawn,
+                            &mut game.hash,
+                            *pos - square_diference,
+                            &game::Color::White,
+                        );
+                    }
+                }
             }
-
-        }else{
-
-            match movement.destiny_piece{
-                piece::Piece::White(p) => unsafe{zobrist_hashing::HASH.hash_move(p, &mut game.hash, movement.destiny, &game::Color::White)},
-                piece::Piece::Black(p) => unsafe{zobrist_hashing::HASH.hash_move(p, &mut game.hash, movement.destiny, &game::Color::Black)},
+        } else {
+            match movement.destiny_piece {
+                piece::Piece::White(p) => unsafe {
+                    zobrist_hashing::HASH.hash_move(
+                        p,
+                        &mut game.hash,
+                        movement.destiny,
+                        &game::Color::White,
+                    )
+                },
+                piece::Piece::Black(p) => unsafe {
+                    zobrist_hashing::HASH.hash_move(
+                        p,
+                        &mut game.hash,
+                        movement.destiny,
+                        &game::Color::Black,
+                    )
+                },
                 _ => (),
             }
-
         }
-    }else{
-        match movement.destiny_piece{
-            piece::Piece::White(p) => unsafe{zobrist_hashing::HASH.hash_move(p, &mut game.hash, movement.destiny, &game::Color::White)},
-            piece::Piece::Black(p) => unsafe{zobrist_hashing::HASH.hash_move(p, &mut game.hash, movement.destiny, &game::Color::Black)},
+    } else {
+        match movement.destiny_piece {
+            piece::Piece::White(p) => unsafe {
+                zobrist_hashing::HASH.hash_move(
+                    p,
+                    &mut game.hash,
+                    movement.destiny,
+                    &game::Color::White,
+                )
+            },
+            piece::Piece::Black(p) => unsafe {
+                zobrist_hashing::HASH.hash_move(
+                    p,
+                    &mut game.hash,
+                    movement.destiny,
+                    &game::Color::Black,
+                )
+            },
             _ => (),
         }
     }
@@ -110,19 +142,38 @@ fn aux(
                         game.board[28] = piece::Piece::Empty;
                         game.white_pieces.make_move(&piece::PieceType::Rook, 26, 28);
 
-                        unsafe{
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 28, &game::Color::White);
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 26, &game::Color::White);
+                        unsafe {
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                28,
+                                &game::Color::White,
+                            );
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                26,
+                                &game::Color::White,
+                            );
                         }
-
                     } else {
                         game.board[24] = game.board[21];
                         game.board[21] = piece::Piece::Empty;
                         game.white_pieces.make_move(&piece::PieceType::Rook, 24, 21);
 
-                        unsafe{
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 21, &game::Color::White);
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 24, &game::Color::White);
+                        unsafe {
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                21,
+                                &game::Color::White,
+                            );
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                24,
+                                &game::Color::White,
+                            );
                         }
                     }
                 }
@@ -132,19 +183,38 @@ fn aux(
                         game.board[98] = piece::Piece::Empty;
                         game.black_pieces.make_move(&piece::PieceType::Rook, 96, 98);
 
-                        unsafe{
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 98, &game::Color::Black);
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 96, &game::Color::Black);
+                        unsafe {
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                98,
+                                &game::Color::Black,
+                            );
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                96,
+                                &game::Color::Black,
+                            );
                         }
-
                     } else {
                         game.board[94] = game.board[91];
                         game.board[91] = piece::Piece::Empty;
                         game.black_pieces.make_move(&piece::PieceType::Rook, 94, 91);
 
-                        unsafe{
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 91, &game::Color::Black);
-                            zobrist_hashing::HASH.hash_move(piece::PieceType::Rook, &mut game.hash, 94, &game::Color::Black);
+                        unsafe {
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                91,
+                                &game::Color::Black,
+                            );
+                            zobrist_hashing::HASH.hash_move(
+                                piece::PieceType::Rook,
+                                &mut game.hash,
+                                94,
+                                &game::Color::Black,
+                            );
                         }
                     }
                 }
@@ -155,8 +225,6 @@ fn aux(
     game.board[movement.origin as usize] = piece::Piece::Empty;
 
     update_game_state(game, piece, movement);
-    
-    
 }
 
 fn update_game_state(
@@ -165,15 +233,15 @@ fn update_game_state(
     movement: &move_gen::Move,
 ) {
     let mut castling = *game.castling.last().unwrap();
-    
+
     match movement.destiny_piece {
         piece::Piece::White(piece) => match piece {
             piece::PieceType::Rook => {
                 if movement.destiny == 28 && castling[0] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 0)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 0) }
                     castling[0] = false;
                 } else if movement.destiny == 21 && castling[1] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 1)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 1) }
                     castling[1] = false;
                 }
             }
@@ -182,10 +250,10 @@ fn update_game_state(
         piece::Piece::Black(piece) => match piece {
             piece::PieceType::Rook => {
                 if movement.destiny == 98 && castling[2] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 2)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 2) }
                     castling[2] = false;
                 } else if movement.destiny == 91 && castling[3] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 3)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 3) }
                     castling[3] = false;
                 }
             }
@@ -199,19 +267,19 @@ fn update_game_state(
         piece::PieceType::Rook => match game.turn {
             game::Color::White => {
                 if movement.origin == 21 && castling[1] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 1)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 1) }
                     castling[1] = false;
                 } else if movement.origin == 28 && castling[0] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 0)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 0) }
                     castling[0] = false;
                 }
             }
             game::Color::Black => {
                 if movement.origin == 91 && castling[3] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 3)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 3) }
                     castling[3] = false;
                 } else if movement.origin == 98 && castling[2] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 2)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 2) }
                     castling[2] = false;
                 }
             }
@@ -219,21 +287,21 @@ fn update_game_state(
         piece::PieceType::King => match game.turn {
             game::Color::White => {
                 if castling[0] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 0)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 0) }
                     castling[0] = false;
                 }
                 if castling[1] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 1)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 1) }
                     castling[1] = false;
                 }
             }
             game::Color::Black => {
                 if castling[2] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 2)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 2) }
                     castling[2] = false;
                 }
                 if castling[3] {
-                    unsafe{ zobrist_hashing::HASH.hash_castling(&mut game.hash, 3)}
+                    unsafe { zobrist_hashing::HASH.hash_castling(&mut game.hash, 3) }
                     castling[3] = false;
                 }
             }
@@ -253,7 +321,10 @@ fn update_game_state(
         game.en_passant
             .push(Some(movement.destiny - square_difference));
 
-        unsafe{zobrist_hashing::HASH.hash_en_passant(&mut game.hash, movement.destiny - square_difference)};
+        unsafe {
+            zobrist_hashing::HASH
+                .hash_en_passant(&mut game.hash, movement.destiny - square_difference)
+        };
     } else {
         game.en_passant.push(None);
     }
@@ -280,6 +351,5 @@ fn update_game_state(
     }
 
     game.turn = game.turn.change_turn();
-    unsafe{zobrist_hashing::HASH.hash_turn(&mut game.hash)}
-
+    unsafe { zobrist_hashing::HASH.hash_turn(&mut game.hash) }
 }

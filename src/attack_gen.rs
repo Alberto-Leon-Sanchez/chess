@@ -11,18 +11,18 @@ pub fn attack_gen(game: &mut game::GameInfo, color: Option<&game::Color>) -> ([u
 
     let mut turn = game::Color::White;
 
-    match color{
+    match color {
         Some(color) if matches!(*color, game::Color::Black) => {
             piece_list = &game.black_pieces;
             king_pos = game.white_pieces.kings.last().unwrap();
-        },
+        }
         None => {
             if !matches!(game.turn, game::Color::Black) {
                 piece_list = &game.black_pieces;
                 king_pos = game.white_pieces.kings.last().unwrap();
                 turn = game::Color::Black;
             }
-        },
+        }
         _ => (),
     }
 

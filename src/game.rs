@@ -21,7 +21,7 @@ const EMPTY: char = '\u{25A1}';
 //pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
 
-#[derive(Clone,PartialEq, Eq,Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Color {
     White,
     Black,
@@ -36,14 +36,14 @@ impl Color {
     }
 
     pub fn opposite_color(&self) -> Color {
-        match self{
+        match self {
             Color::White => Color::Black,
             Color::Black => Color::White,
         }
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct GameInfo {
     pub board: [piece::Piece; 120],
     pub white_pieces: piece::PieceList,
@@ -53,39 +53,42 @@ pub struct GameInfo {
     pub en_passant: Vec<Option<i8>>,
     pub half_move_clock: Vec<u8>,
     pub full_move: i32,
-    pub hash:u64,
+    pub hash: u64,
     pub transposition_table: Vec<Eval>,
 }
 
-#[derive(Copy,Clone,Debug)]
-pub enum Flag{
+#[derive(Copy, Clone, Debug)]
+pub enum Flag {
     Exact,
     Lowerbound,
-    Upperbound
+    Upperbound,
 }
 
-#[derive(Copy,Clone,Debug)]
-pub struct Eval{
-    pub movement:move_gen::Move,
+#[derive(Copy, Clone, Debug)]
+pub struct Eval {
+    pub movement: move_gen::Move,
     pub depth: i8,
     pub zobrist_key: u64,
     pub flag: Flag,
-    pub value: f64
-    
+    pub value: f64,
 }
 
-impl Eval{
-    pub fn new() -> Eval{
-        Eval{
-            movement: move_gen::Move { origin: 0, destiny: 0, destiny_piece:piece::Piece::Empty, promotion: None },
+impl Eval {
+    pub fn new() -> Eval {
+        Eval {
+            movement: move_gen::Move {
+                origin: 0,
+                destiny: 0,
+                destiny_piece: piece::Piece::Empty,
+                promotion: None,
+            },
             depth: 0,
             zobrist_key: 0,
             flag: Flag::Exact,
-            value: 0.0
+            value: 0.0,
         }
     }
 }
-
 
 impl GameInfo {
     pub fn print_board(&self) {
