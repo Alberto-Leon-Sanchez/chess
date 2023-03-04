@@ -16,3 +16,4 @@ pub mod eval;
 pub mod model;
 pub mod notation;
 pub mod training_parser;
+pub mod suite;

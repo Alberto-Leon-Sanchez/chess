@@ -1,4 +1,6 @@
 use crate::attack_gen;
+use crate::fen_reader;
+use crate::fen_writer;
 use crate::game;
 use crate::piece;
 
@@ -19,6 +21,28 @@ pub struct Move {
     pub destiny_piece: piece::Piece,
     pub promotion: Option<piece::PieceType>,
 }
+
+
+impl PartialEq for Move{
+    fn eq(&self, other: &Self) -> bool {
+        self.origin == other.origin && self.destiny == other.destiny
+        && self.destiny_piece == other.destiny_piece && self.promotion == other.promotion
+    }
+}
+
+impl Move {
+    pub fn new() -> Move {
+        Move {
+            origin: 0,
+            destiny: 0,
+            destiny_piece: piece::Piece::Empty,
+            promotion: None,
+        }
+    }
+}
+
+
+
 
 pub fn move_gen(game: &mut game::GameInfo) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();

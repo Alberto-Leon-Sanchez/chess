@@ -1,22 +1,17 @@
-use std::{hash, env};
+use std::{hash, env, fs::{self, File}, io::BufReader};
 
 use chess::{
-    fen_reader, perft::perft, zobrist_hashing::HASH, alpha_beta_search, model, training_parser
+    fen_reader, perft::perft, zobrist_hashing::HASH, alpha_beta_search, model, training_parser, eval, move_gen::{move_gen, self}, make_move, unmake, suite
 };
+use tch::nn::{self, Module};
 
 fn main(){
     
+    env::set_var("RUST_BACKTRACE", "1");
     unsafe{
         HASH.randomize();
     }
-
-
-    //let mut game = fen_reader::read_fen("6k1/pp2brp1/4Q2p/8/8/1PnrB3/P4PPP/R5K1 b - - 1 21");
     
-    //let best_move = alpha_beta_search::get_best_negamax_alpha_beta(&mut game, 5);
-
-    //println!("{},{}",best_move.origin,best_move.destiny);
-    env::set_var("RUST_BACKTRACE", "1");
     model::train()
 
 }

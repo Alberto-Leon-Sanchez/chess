@@ -70,7 +70,7 @@ pub struct Eval{
     pub depth: i8,
     pub zobrist_key: u64,
     pub flag: Flag,
-    pub value: i16
+    pub value: f64
     
 }
 
@@ -81,7 +81,7 @@ impl Eval{
             depth: 0,
             zobrist_key: 0,
             flag: Flag::Exact,
-            value: 0
+            value: 0.0
         }
     }
 }

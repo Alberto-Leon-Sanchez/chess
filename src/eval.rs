@@ -1,7 +1,14 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufReader;
+
+use tch::nn;
+use tch::nn::Module;
 
 use crate::attack_gen;
 use crate::game;
+use crate::model;
+use crate::model::Net;
 use crate::piece;
 use crate::move_gen;
 
@@ -18,11 +25,11 @@ const CENTRAL_CONTROL:[i16;120] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-const PAWN:i16 = 100;
-const KNIGHT:i16 = 350;
-const BISHOP:i16 = 350;
-const ROOK:i16 = 525;
-const QUEEN:i16 = 1000;
+const PAWN:i16 = 1;
+const KNIGHT:i16 = 3;
+const BISHOP:i16 = 3;
+const ROOK:i16 = 5;
+const QUEEN:i16 = 9;
 
 const PAWN_PROTECTED:i16 = 25;
 const KNIGHT_PROTECTED:i16 = 15;
@@ -45,33 +52,23 @@ const QUEEN_MOVEMENT:i16 = 9;
 const KING_MOVEMENT:i16 = 1;
 
 
-pub fn eval(game:&mut game::GameInfo) -> i16{
-
-    let mut score = 0;
-    let mut temp = 0;
-    let attacks:[u8;120];
-
-    let turn:i16 = if game.turn == game::Color::White{
-        (attacks,_) = attack_gen::attack_gen(game, Some(&game::Color::White));
-        1
-    }else{
-        (attacks,_) = attack_gen::attack_gen(game, Some(&game::Color::Black));
-        -1
-    };
-
-    let moves = move_gen::move_gen(game);
-
-    let mut mobility:HashMap<i8,i16> = HashMap::new();
-    let mut conectivity: HashMap<i8,i16> = HashMap::new();
-
-    
-    
+pub fn eval(game:&mut game::GameInfo) -> f64{
+        
     let white = material_eval(&game.white_pieces);
     let black = material_eval(&game.black_pieces);
 
-    score += white - black;
-
+    let score = 4.0 * ((white - black) as f64 / 39.0 );
     score
+}
+
+pub fn net_eval(game:&mut game::GameInfo, net: &Net) -> f64{
+
+    net.forward(&model::pre_proccess(game)).f_double_value(&[0]).unwrap()
+}
+
+pub fn net_eval_tch(game:&mut game::GameInfo, net: &Net) -> tch::Tensor{
+
+    net.forward(&model::pre_proccess(game))
 }
 
 fn material_eval(piece_list:&piece::PieceList) ->i16{

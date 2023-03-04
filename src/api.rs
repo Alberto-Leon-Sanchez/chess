@@ -1,6 +1,11 @@
+use std::fs::File;
+use std::io::BufReader;
+
+use crate::alpha_beta_search;
 use crate::fen_reader;
 use crate::fen_writer;
 use crate::make_move;
+use crate::model;
 use crate::move_gen;
 use crate::piece;
 use http_types::convert::json;
@@ -24,6 +29,12 @@ struct MoveFen {
     destiny: i8,
     promotion: String,
     fen: String,
+}
+
+#[derive(Deserialize)]
+struct BestMove{
+    fen: String,
+    depth: i8
 }
 
 pub async fn get_moves(request: tide::Request<()>) -> tide::Result {
@@ -79,6 +90,24 @@ pub async fn make_move(request: tide::Request<()>) -> tide::Result {
 
     Ok(json!(Fen { fen }).into())
 }
+
+pub async fn get_best(request: tide::Request<()>) -> tide::Result {
+    
+    let query: BestMove = request.query()?;
+    let depth = query.depth;
+    let mut game = fen_reader::read_fen(&query.fen);
+
+    let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
+    let net = model::model(vs.root());
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/3_hidden_1014.pt").unwrap())).unwrap();
+
+    let mut movement = alpha_beta_search::get_best(&mut game, depth, &net);
+    make_move::make_move(&mut game, &mut movement);
+    let fen = fen_writer::write_fen(&game);
+
+    Ok(json!(Fen{fen}).into())
+}
+
 
 pub fn board64_to_board120(pos: i8) -> i8 {
     let mut row = pos / 8;

@@ -27,8 +27,12 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
 
     let half_move_clock = get_half_move_clock(split[4]);
 
-    let full_move = get_full_move(split[5]);
-    
+    let full_move;
+    if split.len() == 6{
+        full_move = get_full_move(split[5]);
+    }else {
+        full_move = 0;
+    }
     let hash;
 
     unsafe{
@@ -168,14 +172,21 @@ fn get_en_passant(fen: &str) -> Vec<Option<i8>> {
 fn get_half_move_clock(fen: &str) -> Vec<u8> {
     let mut half_move_clock: Vec<u8> = Vec::new();
 
-    let clock: u8 = fen.parse().expect("Invalid half move clock");
+    let clock: u8 = match fen.parse() {
+        Ok(clock) => clock,
+        Err(_) => 0,
+    };
 
     half_move_clock.push(clock);
     half_move_clock
 }
 
 fn get_full_move(fen: &str) -> i32 {
-    fen.parse().expect("invalid full move clock")
+    match fen.parse() {
+        Ok(move_number) => move_number,
+        Err(_) => 0,
+    }
+
 }
 pub fn letter_to_column(letter: char) -> u32 {
     match letter {

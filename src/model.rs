@@ -1,9 +1,9 @@
 
-use std::{vec, io::{BufRead, BufReader, Write}, fs::{File, OpenOptions}, time::{SystemTime, UNIX_EPOCH}};
+use std::{vec, io::{BufRead, BufReader, Write, BufWriter}, fs::{File, OpenOptions}, time::{SystemTime, UNIX_EPOCH}};
 
 use rand::{Rng, SeedableRng};
 use tch::{nn::{self, OptimizerConfig, Module}, Tensor};
-use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval::{self, eval}};
+use crate::{game::{self, GameInfo, Eval}, piece::{PieceList, Piece}, move_gen, make_move, unmake::{self, unmake_move}, fen_reader, eval::{self, eval}, suite, alpha_beta_search};
 use crate::api::{board120_to_board64,board64_to_board120};
 use crate::attack_gen;
 
@@ -12,17 +12,19 @@ const N_EPOCHS:i64 = 10000;
 const N_GAMES:i64 = 256;
 const LAMBDA:f64 = 0.7;
 const BATCH_GAMES:i64 = 256;
-const MAX_NOT_IMPROVED:i64 = 20;
-const EVAl_PERCENTAGE:f64 = 0.2;
+const MAX_NOT_IMPROVED:i64 = 80;
+const EVAl_PERCENTAGE:f64 = 0.0;
+const DEPTH:i8 = 3;
+const UNINITIALIZED:f64 = 100.00;
+
 
 #[derive(Debug)]
-struct Net{
+pub struct Net{
     piece_pos: tch::nn::Linear,
     game_state: tch::nn::Linear,
     attacks: tch::nn::Linear,
     hidden1: tch::nn::Linear,
     hidden2: tch::nn::Linear,
-    hidden3: tch::nn::Linear,
 }
 
 impl Module for Net{
@@ -35,8 +37,7 @@ impl Module for Net{
         let cat = Tensor::cat(&[piece_pos, game_state, attacks], 0);
 
         let hidden1 = self.hidden1.forward(&cat).relu();
-        let hidden2 = self.hidden2.forward(&hidden1).relu();
-        let result = self.hidden3.forward(&hidden2).tanh();
+        let result = self.hidden2.forward(&hidden1).tanh();
 
         result
     }
@@ -46,12 +47,12 @@ impl Module for Net{
 fn get_training_games() -> Vec<String>{
     let mut games = vec![];
 
-    let file = File::open("/home/castor_cabron/proyectos/chess/training_fen.txt").unwrap();
+    let file = File::open("./training_fen.txt").unwrap();
     let reader = BufReader::new(file);
     
     let num_games = reader.lines().count();
 
-    let file = File::open("/home/castor_cabron/proyectos/chess/training_fen.txt").unwrap();
+    let file = File::open("./training_fen.txt").unwrap();
     let reader = BufReader::new(file);
     
     for (i,line) in reader.lines().enumerate() {
@@ -66,12 +67,12 @@ fn get_training_games() -> Vec<String>{
 fn get_eval_games() -> Vec<String>{
     let mut games = vec![];
 
-    let file = File::open("/home/castor_cabron/proyectos/chess/training_fen.txt").unwrap();
+    let file = File::open("./training_fen.txt").unwrap();
     let reader = BufReader::new(file);
     
     let num_games = reader.lines().count();
     
-    let file = File::open("/home/castor_cabron/proyectos/chess/training_fen.txt").unwrap();
+    let file = File::open("./training_fen.txt").unwrap();
     let reader = BufReader::new(file);
 
     //get the last num_games of the file
@@ -98,7 +99,7 @@ fn get_batch(games: &Vec<String>) -> Vec<game::GameInfo>{
     batch
 }
 
-fn pre_proccess(game: &mut game::GameInfo ) -> tch::Tensor{
+pub fn pre_proccess(game: &mut game::GameInfo ) -> tch::Tensor{
     
     let bitmaps = piece_lists_to_bitmaps(&game.white_pieces, &game.black_pieces).totype(tch::Kind::Float);
     let game_state = game_state(game).totype(tch::Kind::Float);
@@ -193,18 +194,15 @@ fn attacks(game: &mut GameInfo) -> tch::Tensor{
 }
 
 
-fn model(vs: nn::Path) -> Net{
+pub fn model(vs: nn::Path) -> Net{
    
- 
     let piece_pos = tch::nn::linear(&vs, 384, 384, Default::default());
     let game_state = tch::nn::linear(&vs, 69, 69, Default::default());
     let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
     let hidden1 = tch::nn::linear(&vs, 581, 581, Default::default());
-    let hidden2 = tch::nn::linear(&vs, 581, 581, Default::default());
-    let hidden3 = tch::nn::linear(&vs, 581, 1, Default::default());
+    let hidden2 = tch::nn::linear(&vs, 581, 1, Default::default());
 
-
-    Net{piece_pos, game_state, attacks, hidden1,hidden2,hidden3}
+    Net{piece_pos, game_state, attacks, hidden1,hidden2}
 
 }
 
@@ -212,62 +210,39 @@ pub fn train() -> (){
 
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-    let mut opt = nn::Adam::default().build(&vs, 0.00001).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, 0.001).unwrap();
     
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/3_hidden_122.pt").unwrap())).unwrap();
+    //vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/3_hidden_1204.pt").unwrap())).unwrap();
     opt.zero_grad();
 
     let games = get_training_games();
     let num_batches:i64 = (N_GAMES as f64 / BATCH_GAMES as f64).ceil() as i64;
-    let eval_games = get_eval_games();
 
-    let mut writer = OpenOptions::new().append(true).open("./training_data/3_hidden.txt").unwrap();
-    let mut eval_writer = OpenOptions::new().append(true).open("./training_data/Eval_3_hidden.txt").unwrap();
-
-    let mut lowest_lost:f64 = 1000000.0;
-    let mut not_improved:i64 = 0;
-
-    for epoch in 123..=N_EPOCHS{
+    let mut writer = OpenOptions::new().append(true).open("./training_data/bootstraping_3_hidden.txt").unwrap();
+  
+    for epoch in 0..=N_EPOCHS{
         
         let mut accumulated_loss = 0.0;
-        let mut eval = 0.0;
 
-        tdl_train(num_batches, &games, &net, &mut accumulated_loss);
-        //bootstraping(num_batches, &games, &net, &mut accumulated_loss);
+        //tdl_train(num_batches, &games, &net, &mut accumulated_loss);
+        bootstraping(num_batches, &games, &net, &mut accumulated_loss);
+        let score = suite::test_model_net(&net);
+        println!("{}",net.hidden1.ws);
+
         opt.step();
         opt.zero_grad();
+        println!("{}",net.hidden1.ws);
+
 
         let batch_loss = accumulated_loss/num_batches as f64;
 
         println!("Epoch: {} Loss: {}", epoch, batch_loss);
         writer.write_all(format!("{} {}\n", epoch, batch_loss).as_bytes()).unwrap();
 
-        if epoch % 2 == 0{
-            tdl_train(num_batches, &eval_games, &net, &mut eval);
-            //bootstraping(num_batches, &eval_games, &net, &mut eval);
-            eval_writer.write_all(format!("{} {}\n", epoch, eval/num_batches as f64).as_bytes()).unwrap();
-            opt.zero_grad();
 
-            if (eval/num_batches as f64) < lowest_lost{
-
-                let path = format!("./model_weights/3_hidden_{}.pt", epoch);   
-                vs.save_to_stream(&mut File::create(path).unwrap()).unwrap();
-                lowest_lost = eval/num_batches as f64;
-                not_improved = 0;
-    
-            }else {
-                not_improved += 1;
-            }
-    
-            if not_improved >= MAX_NOT_IMPROVED{
-                break;
-            }
-
-            println!("Epoch: {} Eval: {}",epoch, eval/num_batches as f64)
-        }
-
+        println!("Epoch: {} Score: {}", epoch, score);        
         
-
+        vs.save(format!("model_weights/bootstraping_3_hidden_{}.pt", epoch)).unwrap();
         
     }
 
@@ -370,15 +345,42 @@ fn bootstraping(num_batches: i64, games: &Vec<String>, net: &Net, accumulated_lo
 
         for game in batch.iter_mut(){
 
-            let mut tmp = move_gen::move_gen(game);
-            let len = tmp.len();
-            make_move::make_move(game, &mut tmp[rng.gen_range(0..len)]);
+            let mut movements = move_gen::move_gen(game);
+            let len = movements.len();
+            make_move::make_move(game, &mut movements[rng.gen_range(0..len)]);
 
-            let prediction = net.forward(&pre_proccess(game));
-           
-            let score = tch::Tensor::of_slice(&[(eval::eval(game) as f64) / 1000.0]);
-            let loss = get_loss(&prediction, &score, 1);
+            movements = move_gen::move_gen(game);
+
+            let mut prediction;
+            let mut score;
+            let mut score_selected = tch::Tensor::of_slice(&[0.0]);
+            let mut best_prediction = if game.turn == game::Color::White {
+                tch::Tensor::of_slice(&[f64::MIN])}else{
+                tch::Tensor::of_slice(&[f64::MAX])
+                };
+
+            for mut movement in movements{
                 
+                make_move::make_move(game, &mut movement);
+                prediction = alpha_beta_search::alpha_beta_min_net(tch::Tensor::of_slice(&[f64::MIN]), tch::Tensor::of_slice(&[f64::MAX]) , DEPTH-1, game, net);
+                score = tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(f64::MIN, f64::MAX, DEPTH-1, game)]);
+                unmake::unmake_move(game, movement);
+
+                if game.turn == game::Color::White{
+                    if prediction.f_double_value(&[0]).unwrap() > best_prediction.f_double_value(&[0]).unwrap(){
+                        best_prediction = prediction;
+                        score_selected = score;
+                    }
+                }else{
+                    if prediction.f_double_value(&[0]).unwrap() < best_prediction.f_double_value(&[0]).unwrap(){
+                        best_prediction = prediction;
+                        score_selected = score;
+                    }
+                }              
+
+            }
+            let loss = get_loss(&best_prediction, &score_selected, 0);
+            println!("{},{}",best_prediction,score_selected);
             *accumulated_loss += loss.f_double_value(&[0]).unwrap();
             losses.push(loss);
 

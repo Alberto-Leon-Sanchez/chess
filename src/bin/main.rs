@@ -18,6 +18,7 @@ async fn main() -> tide::Result<()> {
 
     app.at("/getMoves").get(api::get_moves);
     app.at("/makeMove").get(api::make_move);
+    app.at("/getBest").get(api::get_best);
     app.listen("127.0.0.1:8080").await?;
 
     Ok(())
