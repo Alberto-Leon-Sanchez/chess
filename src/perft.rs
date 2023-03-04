@@ -1,5 +1,3 @@
-use serde::__private::de;
-
 use crate::{game, make_move, move_gen, move_notation, unmake};
 
 pub fn perft(depth: i8, mut game: &mut game::GameInfo) -> u64 {

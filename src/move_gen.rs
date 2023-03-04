@@ -1,6 +1,4 @@
 use crate::attack_gen;
-use crate::fen_reader;
-use crate::fen_writer;
 use crate::game;
 use crate::piece;
 

@@ -1,11 +1,5 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
-
-use tch::nn;
 use tch::nn::Module;
-
-use crate::attack_gen;
 use crate::game;
 use crate::model;
 use crate::model::Net;

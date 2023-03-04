@@ -1,14 +1,10 @@
 use crate::fen_reader;
 use crate::game;
-use crate::game::GameInfo;
 use crate::move_gen;
-use crate::move_gen::DIAGONAL_SLIDING;
-use crate::move_gen::LATERAL_SLIDING;
 use crate::piece;
-use crate::piece::Piece;
 use crate::piece::PieceType;
 use regex::Regex;
-use serde::__private::de;
+
 
 pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
     let turn = &game.turn;

@@ -1,6 +1,3 @@
-use std::char::MAX;
-use std::f32::MIN;
-
 use crate::eval;
 use crate::game;
 use crate::make_move;

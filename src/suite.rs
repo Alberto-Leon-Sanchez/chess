@@ -4,7 +4,7 @@ use std::{
 };
 
 use regex;
-use tch::nn::{self, Module};
+use tch::nn::{self};
 
 use crate::{
     eval, fen_reader, game, make_move, model,

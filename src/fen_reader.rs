@@ -2,7 +2,6 @@ use crate::game;
 use crate::piece::Piece;
 use crate::piece::PieceList;
 use crate::piece::PieceType;
-use crate::zobrist_hashing;
 use crate::zobrist_hashing::HASH;
 
 pub const MAILBOX_OFF_SET: u32 = 20;
