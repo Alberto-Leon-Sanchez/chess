@@ -44,6 +44,13 @@ pub fn eval(game: &mut game::GameInfo) -> f64 {
     let black = material_eval(&game.black_pieces);
 
     let score = 4.0 * ((white - black) as f64 / 39.0);
+
+    if score < -1.0{
+        return -0.9;
+    }else if score > 1.0{
+        return 0.9;
+    }
+
     score
 }
 

@@ -1,6 +1,6 @@
 use std::env;
 
-use chess::{model, zobrist_hashing::HASH};
+use chess::{model, zobrist_hashing::HASH, training_parser};
 
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
@@ -9,4 +9,5 @@ fn main() {
     }
 
     model::train()
+
 }

@@ -7,7 +7,7 @@ use regex;
 use tch::nn::{self};
 
 use crate::{
-    eval, fen_reader, game, make_move, model,
+    eval, fen_reader, game::{self, GameInfo}, make_move, model,
     move_gen::{self, move_gen},
     notation, unmake,
 };
@@ -75,10 +75,9 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: &model::Net) -> i64 {
-    let suites = get_suites();
-    let mut games = suites.0;
-    let results = suites.1;
+pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>)) -> i64 {
+    let games = &mut suites.0;
+    let results = &mut suites.1;
     let mut total_score: i64;
     let mut suite_results = OpenOptions::new().append(true).open("./suite.txt").unwrap();
 
@@ -126,7 +125,7 @@ pub fn test_model_net(net: &model::Net) -> i64 {
     total_score
 }
 
-fn get_suites() -> (Vec<game::GameInfo>, Vec<Vec<(move_gen::Move, i64)>>) {
+pub fn get_suites() -> (Vec<game::GameInfo>, Vec<Vec<(move_gen::Move, i64)>>) {
     let regex = regex::Regex::new("(([RBQKPN]?[1-8]?[a-h]?[x]?[a-h][1-8]([=][RBQKPN])?[+#]?=[0-9]*)?((O-O-O)?(O-O)?=[0-9]*)?)").unwrap();
     let paths: Vec<String> = fs::read_dir("./suites/")
         .unwrap()
