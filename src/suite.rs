@@ -79,7 +79,7 @@ pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(mov
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
-    let mut suite_results = OpenOptions::new().append(true).open("./suite.txt").unwrap();
+    let mut suite_results = OpenOptions::new().append(true).open("./suite2.txt").unwrap();
 
     total_score = 0;
 

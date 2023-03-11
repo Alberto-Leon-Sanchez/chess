@@ -23,7 +23,7 @@ use tch::{
 };
 
 const N_STEPS: i64 = 12;
-const N_EPOCHS: i64 = 1;
+const N_EPOCHS: i64 = 10000;
 const N_GAMES: i64 = 256;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
@@ -36,7 +36,6 @@ pub struct Net {
     game_state: tch::nn::Linear,
     attacks: tch::nn::Linear,
     hidden1: tch::nn::Linear,
-    hidden2: tch::nn::Linear,
 }
 
 impl Module for Net {
@@ -47,8 +46,7 @@ impl Module for Net {
 
         let cat = Tensor::cat(&[piece_pos, game_state, attacks], 0);
 
-        let hidden1 = self.hidden1.forward(&cat).relu();
-        let result = self.hidden2.forward(&hidden1).tanh();
+        let result = self.hidden1.forward(&cat).tanh();
 
         result
     }
@@ -67,15 +65,13 @@ pub fn model(vs: nn::Path) -> Net {
     let piece_pos = tch::nn::linear(&vs, 384, 384, Default::default());
     let game_state = tch::nn::linear(&vs, 69, 69, Default::default());
     let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
-    let hidden1 = tch::nn::linear(&vs, 581, 581, Default::default());
-    let hidden2 = tch::nn::linear(&vs, 581, 1, Default::default());
+    let hidden1 = tch::nn::linear(&vs, 581, 1, Default::default());
 
     Net {
         piece_pos,
         game_state,
         attacks,
         hidden1,
-        hidden2,
     }
 }
 
@@ -97,20 +93,20 @@ pub fn train() -> () {
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
     let mut opt = nn::Adam::default().build(&vs, 0.0001).unwrap();
-
+    //let mut opt = nn::RmsProp::default().build(&vs, 1.0).unwrap();
     let mut suites = suite::get_suites();
 
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_3_hidden_239.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden_84.pt").unwrap())).unwrap();
     opt.zero_grad();
 
     let mut games = get_training_games();
 
     let mut writer = OpenOptions::new()
         .append(true)
-        .open("./training_data/bootstraping_3_hidden.txt")
+        .open("training_data/bootstraping_2_hidden.txt")
         .unwrap();
 
-    for epoch in 0..N_EPOCHS {
+    for epoch in 85..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
         //tdl_train(&mut games, &net, &mut accumulated_loss);
@@ -130,7 +126,7 @@ pub fn train() -> () {
 
         println!("Epoch: {} Score: {}", epoch, score);
 
-        vs.save(format!("model_weights/bootstraping_3_hidden_{}.pt", epoch))
+        vs.save(format!("model_weights/bootstraping_2_hidden_{}.pt", epoch))
             .unwrap();
     }
 }
