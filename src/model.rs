@@ -15,6 +15,7 @@ use crate::{
     piece::{PieceList},
     suite,
     unmake::{self},
+    eval
 };
 use rand::{Rng, SeedableRng};
 use tch::{
@@ -111,9 +112,9 @@ pub fn train() -> () {
     for epoch in 1101..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
-        tdl_train(&mut games, &net, &mut accumulated_loss);
+        //tdl_train(&mut games, &net, &mut accumulated_loss);
         
-        //bootstraping(&mut games, &net, &mut accumulated_loss);
+        bootstraping(&mut games, &net, &mut accumulated_loss);
         let score = suite::test_model_net(&net,&mut suites);
         println!("{}", net.hidden1.ws);
 
@@ -261,19 +262,10 @@ fn bootstraping(
 
         for mut movement in movements {
             make_move::make_move(game, &mut movement);
-            prediction = alpha_beta_search::alpha_beta_min_net(
-                tch::Tensor::of_slice(&[f64::MIN]),
-                tch::Tensor::of_slice(&[f64::MAX]),
-                DEPTH - 1,
-                game,
-                net,
-            );
-            score = tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(
-                f64::MIN,
-                f64::MAX,
-                DEPTH - 1,
-                game,
-            )]);
+            prediction = net.forward(&pre_proccess(game));
+            
+            score = tch::Tensor::of_slice(&[eval::eval(game)]);
+
             unmake::unmake_move(game, movement);
 
             if game.turn == game::Color::White {
@@ -292,7 +284,7 @@ fn bootstraping(
                 }
             }
         }
-        let loss = get_loss(&best_prediction, &score_selected, 0);
+        let loss = get_loss_mse(&best_prediction, &score_selected);
         println!("{},{}", best_prediction, score_selected);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
         losses.push(loss);
@@ -312,6 +304,12 @@ fn get_loss(next_score: &Tensor, score: &Tensor, step: i64) -> Tensor {
     
     (next_score - score).multiply(&discount_factor).abs()
 }
+
+fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
+    
+    (next_score - score).pow(&tch::Tensor::of_slice(&[2]))
+}
+
 
 fn piece_lists_to_bitmaps(white: &PieceList, black: &PieceList) -> tch::Tensor {
     let to_bitmap = |white: &Vec<i8>, black: &Vec<i8>| -> Tensor {
