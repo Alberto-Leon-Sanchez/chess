@@ -1,0 +1,12 @@
+/home/castor_cabron/chess/target/debug/deps/rand_core-8a72c3726182399a.rmeta: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/error.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/block.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/impls.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/le.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/os.rs
+
+/home/castor_cabron/chess/target/debug/deps/librand_core-8a72c3726182399a.rlib: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/error.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/block.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/impls.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/le.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/os.rs
+
+/home/castor_cabron/chess/target/debug/deps/rand_core-8a72c3726182399a.d: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/error.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/block.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/impls.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/le.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/os.rs
+
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/lib.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/error.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/block.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/impls.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/le.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/rand_core-0.5.1/src/os.rs:

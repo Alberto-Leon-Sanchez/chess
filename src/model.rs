@@ -25,7 +25,7 @@ use tch::{
 
 const N_STEPS: i64 = 12;
 const N_EPOCHS: i64 = 100000;
-const N_GAMES: i64 = 128;
+const N_GAMES: i64 = 256;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
 const DEPTH: i8 = 2;
@@ -99,7 +99,7 @@ pub fn train() -> () {
 
     let mut suites = suite::get_suites();
 
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden_1100.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden_704.pt").unwrap())).unwrap();
     opt.zero_grad();
 
     let mut games = get_training_games();
@@ -109,12 +109,12 @@ pub fn train() -> () {
         .open("training_data/bootstraping_2_hidden.txt")
         .unwrap();
 
-    for epoch in 1101..N_EPOCHS {
+    for epoch in 705..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
-        tdl_train(&mut games, &net, &mut accumulated_loss);
+        //tdl_train(&mut games, &net, &mut accumulated_loss);
         
-        //bootstraping(&mut games, &net, &mut accumulated_loss);
+        bootstraping(&mut games, &net, &mut accumulated_loss);
         let score = suite::test_model_net(&net,&mut suites);
         println!("{}", net.hidden1.ws);
 
