@@ -1,0 +1,12 @@
+/home/castor_cabron/chess/target/debug/deps/half-4a425b4e8bfae35a.rmeta: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/slice.rs
+
+/home/castor_cabron/chess/target/debug/deps/libhalf-4a425b4e8bfae35a.rlib: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/slice.rs
+
+/home/castor_cabron/chess/target/debug/deps/half-4a425b4e8bfae35a.d: /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/lib.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16/convert.rs /home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/slice.rs
+
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/lib.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/bfloat/convert.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/binary16/convert.rs:
+/home/castor_cabron/.cargo/registry/src/github.com-1ecc6299db9ec823/half-1.8.2/src/slice.rs:

@@ -31,5 +31,3 @@ rand = "0.8.5"
 tch = "0.10.1"
 regex = "1.7.1"
 
-[patch.crates-io]
-tch = { path = "../tch-rs" }

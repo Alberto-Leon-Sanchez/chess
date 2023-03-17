@@ -7,7 +7,7 @@ fn main() {
     unsafe {
         HASH.randomize();
     }
-    tch::set_num_threads(1);
+    tch::set_num_threads(4);
     println!("{}",tch::get_num_threads());
     model::train()
 
