@@ -15,6 +15,7 @@ use crate::{
     piece::{PieceList},
     suite,
     unmake::{self},
+    eval
 };
 use rand::{Rng, SeedableRng};
 use tch::{
@@ -94,7 +95,7 @@ pub fn train() -> () {
     let net = model(vs.root());
     //let mut opt = nn::Sgd::default().build(&vs, 0.00005).unwrap();
 
-    let mut opt = nn::Adam::default().build(&vs, 0.00001).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, 0.001).unwrap();
 
     let mut suites = suite::get_suites();
 
@@ -156,9 +157,6 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
 
             make_move::make_move(game, &mut tmp[rng.gen_range(0..len)]);
 
-            let mut last_prediction: tch::Tensor = Tensor::of_slice(&[0.0]);
-
-
             for step in 0..=N_STEPS {
                 let moves = move_gen::move_gen(game);
 
@@ -200,11 +198,11 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
                 }
 
 
-
-                let loss = get_loss(&best_score, &last_prediction, step);
-                last_prediction = best_score;
+                let actual_score = pre_proccess(game);
 
                 make_move::make_move(game, &mut best_move);
+
+                let loss = get_loss(&pre_proccess(game),&actual_score ,step);
 
                 *accumulated_loss += loss.f_double_value(&[0]).unwrap();
                 losses.push(loss);
@@ -261,19 +259,10 @@ fn bootstraping(
 
         for mut movement in movements {
             make_move::make_move(game, &mut movement);
-            prediction = alpha_beta_search::alpha_beta_min_net(
-                tch::Tensor::of_slice(&[f64::MIN]),
-                tch::Tensor::of_slice(&[f64::MAX]),
-                DEPTH - 1,
-                game,
-                net,
-            );
-            score = tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(
-                f64::MIN,
-                f64::MAX,
-                DEPTH - 1,
-                game,
-            )]);
+            prediction = net.forward(&pre_proccess(game));
+            
+            score = tch::Tensor::of_slice(&[eval::eval(game)]);
+
             unmake::unmake_move(game, movement);
 
             if game.turn == game::Color::White {
@@ -292,7 +281,7 @@ fn bootstraping(
                 }
             }
         }
-        let loss = get_loss(&best_prediction, &score_selected, 0);
+        let loss = get_loss_mse(&best_prediction, &score_selected);
         println!("{},{}", best_prediction, score_selected);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
         losses.push(loss);
@@ -312,6 +301,12 @@ fn get_loss(next_score: &Tensor, score: &Tensor, step: i64) -> Tensor {
     
     (next_score - score).multiply(&discount_factor).abs()
 }
+
+fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
+    
+    (next_score - score).pow(&tch::Tensor::of_slice(&[2]))
+}
+
 
 fn piece_lists_to_bitmaps(white: &PieceList, black: &PieceList) -> tch::Tensor {
     let to_bitmap = |white: &Vec<i8>, black: &Vec<i8>| -> Tensor {
