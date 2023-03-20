@@ -24,8 +24,8 @@ use tch::{
 };
 
 const N_STEPS: i64 = 12;
-const N_EPOCHS: i64 = 100000;
-const N_GAMES: i64 = 256;
+const N_EPOCHS: i64 = 10000;
+const N_GAMES: i64 = 512;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
 const DEPTH: i8 = 2;
@@ -95,26 +95,26 @@ pub fn train() -> () {
     let net = model(vs.root());
     //let mut opt = nn::Sgd::default().build(&vs, 0.00005).unwrap();
 
-    let mut opt = nn::Adam::default().build(&vs, 0.001).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, 0.0001).unwrap();
 
     let mut suites = suite::get_suites();
 
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden_704.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden_554.pt").unwrap())).unwrap();
     opt.zero_grad();
 
     let mut games = get_training_games();
 
     let mut writer = OpenOptions::new()
         .append(true)
-        .open("training_data/bootstraping_2_hidden.txt")
+        .open("training_data/2_hidden.txt")
         .unwrap();
 
-    for epoch in 705..N_EPOCHS {
+    for epoch in 0..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
-        //tdl_train(&mut games, &net, &mut accumulated_loss);
+        tdl_train(&mut games, &net, &mut accumulated_loss);
         
-        bootstraping(&mut games, &net, &mut accumulated_loss);
+        //bootstraping(&mut games, &net, &mut accumulated_loss);
         let score = suite::test_model_net(&net,&mut suites);
         println!("{}", net.hidden1.ws);
 
@@ -129,7 +129,7 @@ pub fn train() -> () {
 
         println!("Epoch: {} Score: {}", epoch, score);
 
-        vs.save(format!("model_weights/bootstraping_2_hidden_{}.pt", epoch))
+        vs.save(format!("model_weights/2_hidden_{}.pt", epoch))
             .unwrap();
         
     }
@@ -158,8 +158,8 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
             make_move::make_move(game, &mut tmp[rng.gen_range(0..len)]);
 
             for step in 0..=N_STEPS {
-                let moves = move_gen::move_gen(game);
-
+                let mut moves = move_gen::move_gen(game);
+                eval::order_moves(&mut moves);
                 if moves.len() == 0 {
                     break;
                 }
@@ -198,11 +198,11 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
                 }
 
 
-                let actual_score = pre_proccess(game);
+                let actual_score = net.forward(&pre_proccess(game));
 
                 make_move::make_move(game, &mut best_move);
 
-                let loss = get_loss(&pre_proccess(game),&actual_score ,step);
+                let loss = get_loss(&net.forward(&pre_proccess(game)),&actual_score ,step);
 
                 *accumulated_loss += loss.f_double_value(&[0]).unwrap();
                 losses.push(loss);
@@ -296,8 +296,7 @@ fn bootstraping(
 
 fn get_loss(next_score: &Tensor, score: &Tensor, step: i64) -> Tensor {
     let discount_factor = tch::Tensor::of_slice(&[LAMBDA])
-        .set_requires_grad(true)
-        .pow(&tch::Tensor::of_slice(&[step as f64]).set_requires_grad(true));
+        .pow(&tch::Tensor::of_slice(&[step as f64]));
     
     (next_score - score).multiply(&discount_factor).abs()
 }

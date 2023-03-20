@@ -39,6 +39,19 @@ const ROOK_MOVEMENT: i16 = 5;
 const QUEEN_MOVEMENT: i16 = 9;
 const KING_MOVEMENT: i16 = 1;
 
+pub fn order_moves(moves:&mut Vec<move_gen::Move>){
+
+    let mut index:usize = 0;
+
+    for movement in 0..moves.len(){
+        if moves[movement].destiny_piece != piece::Piece::Empty{
+            moves.swap(index, movement);
+            index += 1;
+        }
+    }
+
+}
+
 pub fn eval(game: &mut game::GameInfo) -> f64 {
     let white = material_eval(&game.white_pieces);
     let black = material_eval(&game.black_pieces);

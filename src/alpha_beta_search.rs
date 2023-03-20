@@ -75,8 +75,8 @@ pub fn alpha_beta_max_net(
     }
 
     let mut alpha = alpha;
-    let movements = move_gen::move_gen(game);
-
+    let mut movements = move_gen::move_gen(game);
+    eval::order_moves(&mut movements);
     if movements.len() == 0 {
         if game.turn == game::Color::White {
             return tch::Tensor::of_slice(&[-1.0]);
@@ -113,8 +113,8 @@ pub fn alpha_beta_min_net(
     }
 
     let mut beta = beta;
-    let movements = move_gen::move_gen(game);
-
+    let mut movements = move_gen::move_gen(game);
+    eval::order_moves(&mut movements);
     if movements.len() == 0 {
         if game.turn == game::Color::White {
             return tch::Tensor::of_slice(&[-1.0]);
