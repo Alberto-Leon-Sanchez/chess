@@ -97,7 +97,7 @@ pub async fn get_best(request: tide::Request<()>) -> tide::Result {
     let mut game = fen_reader::read_fen(&query.fen);
 
     let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
-    let net = model::model(vs.root());
+    let net = model::ChessCNN::new(&vs.root());
     vs.load_from_stream(&mut BufReader::new(
         File::open("./model_weights/3_hidden_1014.pt").unwrap(),
     ))

@@ -21,12 +21,12 @@ pub fn test_model() -> () {
         .map(|x| x.unwrap().path().to_str().unwrap().to_string())
         .collect();
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
-    let net = model::model(vs.root());
+    let net = model::ChessCNN::new(&vs.root());
     let suites = get_suites();
     let mut games = suites.0;
     let results = suites.1;
     let mut total_score: i64;
-    let mut suite_results = File::create("./suite.txt").unwrap();
+    let mut suite_results = File::create("./suite_spike.txt").unwrap();
 
     for path in paths {
         vs.load_from_stream(&mut BufReader::new(File::open(&path).unwrap()))
@@ -75,7 +75,7 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>)) -> i64 {
+pub fn test_model_net(net: &model::ChessCNN, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>)) -> i64 {
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;

@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 use tch::nn::Module;
+use tch::nn::ModuleT;
 use crate::game;
 use crate::model;
+use crate::model::ChessCNN;
 use crate::model::Net;
 use crate::move_gen;
 use crate::piece;
+use crate::attack_gen;
+
 
 const CENTRAL_CONTROL: [i16; 120] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2,
@@ -52,6 +56,12 @@ pub fn order_moves(moves:&mut Vec<move_gen::Move>){
 
 }
 
+pub fn check(game: &mut game::GameInfo) -> bool{
+    let (_, attacks) = attack_gen::attack_gen(game, None);
+
+    attacks != 0
+}
+
 pub fn eval(game: &mut game::GameInfo) -> f64 {
     let white = material_eval(&game.white_pieces);
     let black = material_eval(&game.black_pieces);
@@ -67,14 +77,17 @@ pub fn eval(game: &mut game::GameInfo) -> f64 {
     score
 }
 
-pub fn net_eval(game: &mut game::GameInfo, net: &Net) -> f64 {
-    net.forward(&model::pre_proccess(game))
-        .f_double_value(&[0])
-        .unwrap()
+pub fn net_eval(game: &mut game::GameInfo, net: &ChessCNN) -> f64 {
+    tch::no_grad( || {
+        net.forward_t(&model::pre_proccess(game), false)
+            .double_value(&[0])
+    })
 }
 
-pub fn net_eval_tch(game: &mut game::GameInfo, net: &Net) -> tch::Tensor {
-    net.forward(&model::pre_proccess(game))
+pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::ChessCNN) -> tch::Tensor {
+    tch::no_grad( || {
+        net.forward_t(&model::pre_proccess(game), false)
+    })
 }
 
 fn material_eval(piece_list: &piece::PieceList) -> i16 {
