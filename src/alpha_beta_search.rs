@@ -243,9 +243,9 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Che
         make_move::make_move(game, &mut movement);
 
         let score = if maximizing {
-            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.1]),tch::Tensor::of_slice(&[1.1]), depth_left - 1, game, net)
+            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         } else {
-            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.1]),tch::Tensor::of_slice(&[1.1]), depth_left - 1, game, net)
+            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         };
 
         unmake::unmake_move(game, movement);
@@ -261,4 +261,3 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Che
 
     best_move
 }
-

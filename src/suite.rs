@@ -26,7 +26,7 @@ pub fn test_model() -> () {
     let mut games = suites.0;
     let results = suites.1;
     let mut total_score: i64;
-    let mut suite_results = File::create("./suite_spike.txt").unwrap();
+    let mut suite_results = File::create("./suite.txt").unwrap();
 
     for path in paths {
         vs.load_from_stream(&mut BufReader::new(File::open(&path).unwrap()))
