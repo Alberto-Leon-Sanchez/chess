@@ -21,7 +21,7 @@ pub fn test_model() -> () {
         .map(|x| x.unwrap().path().to_str().unwrap().to_string())
         .collect();
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
-    let net = model::ChessCNN::new(&vs.root());
+    let net = model::model(vs.root());
     let suites = get_suites();
     let mut games = suites.0;
     let results = suites.1;
@@ -75,11 +75,11 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: &model::ChessCNN, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>)) -> i64 {
+pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64) -> i64 {
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
-    let mut suite_results = OpenOptions::new().append(true).open("./suite.txt").unwrap();
+    let mut suite_results = OpenOptions::new().append(true).open("./suite2.txt").unwrap();
 
     total_score = 0;
 
@@ -120,7 +120,7 @@ pub fn test_model_net(net: &model::ChessCNN, suites: &mut (Vec<GameInfo>,Vec<Vec
         }
     }
     suite_results
-        .write_all(format!("{}\n", total_score).as_bytes())
+        .write_all(format!("Epoch:{} Score:{}\n", epoch, total_score).as_bytes())
         .unwrap();
     total_score
 }

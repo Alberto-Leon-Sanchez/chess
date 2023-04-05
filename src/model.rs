@@ -25,11 +25,12 @@ use tch::{
 
 const N_STEPS: i64 = 12;
 const N_EPOCHS: i64 = 1000000;
-const N_GAMES: i64 = 128;
+const N_GAMES: i64 = 256;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
-const DEPTH: i8 = 4;
+const DEPTH: i8 = 2;
 const UNINITIALIZED: f64 = 100.00;
+const LR: f64 = 0.001;
 
 #[derive(Debug)]
 pub struct Net {
@@ -39,53 +40,42 @@ pub struct Net {
     hidden1: tch::nn::Linear,
 }
 
+impl Module for Net {
+    fn forward(&self, xs: &tch::Tensor) -> tch::Tensor {
+        let piece_pos = self.piece_pos.forward(&xs.slice(0, 0, 384, 1)).relu();
+        let game_state = self.game_state.forward(&xs.slice(0, 384, 402, 1)).relu();
+        let attacks = self.attacks.forward(&xs.slice(0, 402, 530, 1)).relu();
+
+        let cat = Tensor::cat(&[piece_pos, game_state, attacks], 0);
+
+        let result = self.hidden1.forward(&cat).tanh();
+
+        result
+    }
+}
+
 pub fn pre_proccess(game: &mut game::GameInfo) -> tch::Tensor {
     let bitmaps =
         piece_lists_to_bitmaps(&game.white_pieces, &game.black_pieces).totype(tch::Kind::Float);
     let game_state = game_state(game).totype(tch::Kind::Float);
     let attacks = attacks(game).totype(tch::Kind::Float);
 
-    let input = Tensor::cat(&[bitmaps, game_state, attacks], 0);
-    
-    input.view([1, 1, 965])
+    Tensor::cat(&[bitmaps, game_state, attacks], 0).totype(tch::Kind::Float)
 }
 
-#[derive(Debug)]
-pub struct ChessCNN {
-    layers: Sequential,
-}
+pub fn model(vs: nn::Path) -> Net {
+    let piece_pos = tch::nn::linear(&vs, 384, 384, Default::default());
+    let game_state = tch::nn::linear(&vs, 18, 18, Default::default());
+    let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
+    let hidden1 = tch::nn::linear(&vs, 530, 1, Default::default());
 
-impl ChessCNN {
-    pub fn new(vs: &nn::Path) -> Self {
-        let cfg = nn::ConvConfigND{
-            stride: 1,
-            padding: 1,
-            ..Default::default()
-        };
-
-        let layers = nn::seq()
-        .add(nn::conv1d(vs, 1, 32, 3, cfg))
-        .add_fn(|xs| xs.relu())
-        .add(nn::conv1d(vs, 32, 64, 3, cfg))
-        .add_fn(|xs| xs.relu())
-        .add_fn(|xs| xs.view([-1, 64 * 965]))
-        .add(nn::linear(vs, 64 * 965, 256, Default::default()))
-        .add_fn(|xs| xs.relu())
-        .add(nn::linear(vs, 256, 1, Default::default()))
-        .add_fn(|xs| xs.tanh());
-
-        ChessCNN { layers }
+    Net {
+        piece_pos,
+        game_state,
+        attacks,
+        hidden1,
     }
 }
-
-impl nn::ModuleT for ChessCNN {
-    fn forward_t(&self, xs: &Tensor, train: bool) -> Tensor {
-        self.layers.forward_t(xs, train)
-    }
-}
-
-
-
 
 fn get_training_games() -> Vec<GameInfo> {
     let mut games = vec![];
@@ -102,15 +92,13 @@ fn get_training_games() -> Vec<GameInfo> {
 
 pub fn train() -> () {
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
-    let net = ChessCNN::new(&vs.root());
+    let net = model(vs.root());
 
-    //let mut opt = nn::Sgd::default().build(&vs, 0.00005).unwrap();
-
-    let mut opt = nn::Adam::default().build(&vs, 0.001).unwrap();
+    let mut opt = nn::Adam::default().build(&vs, LR).unwrap();
 
     let mut suites = suite::get_suites();
 
-    //vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/2_hidden18585.pt").unwrap())).unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden1425.pt").unwrap())).unwrap();
     
     opt.zero_grad();
 
@@ -118,41 +106,41 @@ pub fn train() -> () {
 
     let mut writer = OpenOptions::new()
         .append(true)
-        .open("training_data/2_hidden.txt")
+        .open("training_data/bootstraping_2_hidden.txt")
         .unwrap();
 
-    for epoch in 18586..N_EPOCHS {
+    for epoch in 1426..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
         //tdl_train(&mut games, &net, &mut accumulated_loss);
-        
+        opt.zero_grad(); 
         bootstraping(&mut games, &net, &mut accumulated_loss);
-        let score = suite::test_model_net(&net,&mut suites);
 
         opt.step();
         opt.zero_grad();
         
         println!("Epoch: {} Loss: {}", epoch, accumulated_loss);
-        writer
+        if epoch % 5 == 0{
+            writer
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
-
-        println!("Epoch: {} Score: {}", epoch, score);
-
-        vs.save(format!("model_weights/2_hidden{}.pt", epoch))
-            .unwrap();
         
+            let score = suite::test_model_net(&net,&mut suites, epoch);
+            println!("Epoch: {} Score: {}", epoch, score);
+
+            vs.save(format!("model_weights/bootstraping_2_hidden{}.pt", epoch))
+            .unwrap();
+        }
     }
 }
 
-fn tdl_train(games: &mut Vec<GameInfo>, net: &ChessCNN, accumulated_loss: &mut f64) -> () {
+fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -> () {
     let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
-    let mut losses = Vec::new();
     let size = games.len();
-
+    let mut total_loss = tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
     for _ in 0..N_GAMES {
-        let game = &mut games[rng.gen_range(0..size)];
+        let game = &mut games[rng.gen_range(0..size)].clone();
         let mut movements = move_gen::move_gen(game);
         let len = movements.len();
 
@@ -162,32 +150,46 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &ChessCNN, accumulated_loss: &mut f
 
         make_move::make_move(game, &mut movements[rng.gen_range(0..len)]);
 
-        for step in 0..=N_STEPS {
-            if move_gen::move_gen(game).len() == 0 {
+        let mut scores = Vec::new();
+        for _ in 0..=N_STEPS {
+            let moves_before = move_gen::move_gen(game);
+            if moves_before.len() == 0 {
                 break;
             }
 
             let mut movement = alpha_beta_search::best_move_net(DEPTH, game, net);
-            let actual_score = net.forward_t(&pre_proccess(game), true);
-
             make_move::make_move(game, &mut movement);
-            let loss = get_loss(&net.forward_t(&pre_proccess(game), true), &actual_score, step); 
 
-            *accumulated_loss += loss.f_double_value(&[0]).unwrap();
-            losses.push(loss);
-
+            let score = net.forward_t(&pre_proccess(game),true);
+            scores.push(score);
         }
-    }
 
-    let sum_loss = losses.iter().fold(Tensor::of_slice(&[0.0]), |acc, x| acc + x);
-    let mean_loss = sum_loss / (N_GAMES as f64);
-    *accumulated_loss /= (N_GAMES as f64);
-    mean_loss.backward();
-}  
+        let loss = get_loss(&scores);
+        *accumulated_loss += loss.f_double_value(&[0]).unwrap();
+        if loss.double_value(&[0]) == 0.0{
+            continue;
+        }
+        total_loss = total_loss + loss;
+    }
+    total_loss.backward();
+}
+
+fn get_loss(scores: &Vec<Tensor>) -> Tensor {
+    let mut total_loss = Tensor::of_slice(&[0.0]);
+    for i in 1..scores.len() {
+        let step = i as f64;
+        let discount_factor = tch::Tensor::of_slice(&[LAMBDA]).pow(&tch::Tensor::of_slice(&[step]));
+        let current_loss = (scores.get(i).unwrap() - scores.get(i-1).unwrap()).multiply(&discount_factor);
+        total_loss = total_loss + current_loss;
+    }
+    total_loss.abs()
+}
+
+
 
 fn bootstraping(
     games: &mut Vec<GameInfo>,
-    net: &ChessCNN,
+    net: &Net,
     accumulated_loss: &mut f64,
 ) -> () {
 
@@ -200,15 +202,14 @@ fn bootstraping(
     let mut losses = Vec::with_capacity(N_GAMES.try_into().unwrap());
 
     for _ in 0..N_GAMES {
-        let game = &mut games[rng.gen_range(0..len)];
+        let game = &mut games[rng.gen_range(0..len)].clone();
+        
         let mut movements = move_gen::move_gen(game);
         let len = movements.len();
 
-        if len == 0{
+        if len == 0 {
             continue;
         }
-
-        make_move::make_move(game, &mut movements[rng.gen_range(0..len)]);
 
         let mut score = if game.turn == game::Color::White {
             tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game)])
@@ -218,7 +219,6 @@ fn bootstraping(
         let mut prediction = net.forward_t(&pre_proccess(game), true);
 
         let loss = get_loss_mse(&prediction, &score);
-        println!("{},{}", prediction, score);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
         losses.push(loss);
     }
@@ -227,19 +227,9 @@ fn bootstraping(
         |acc, x| acc + x,
     );
 
-    let mean_loss = sum_loss / (N_GAMES as f64);
-    *accumulated_loss /= N_GAMES as f64;
-    mean_loss.backward(); 
+    sum_loss.backward(); 
 }
             
-  
-fn get_loss(next_score: &Tensor, score: &Tensor, step: i64) -> Tensor {
-    let discount_factor = tch::Tensor::of_slice(&[LAMBDA])
-        .pow(&tch::Tensor::of_slice(&[step as f64]));
-    
-    (next_score - score).multiply(&discount_factor).abs()
-}
-
 fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
     
     (next_score - score).pow(&tch::Tensor::of_slice(&[2]))
@@ -247,58 +237,68 @@ fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
 
 
 fn piece_lists_to_bitmaps(white: &PieceList, black: &PieceList) -> tch::Tensor {
-    let to_bitmap = |piece_list: &Vec<i8>| -> Tensor {
+    let to_bitmap = |white: &Vec<i8>, black: &Vec<i8>| -> Tensor {
         let mut bitmap: Vec<i64> = vec![0; 64];
 
-        for pos in piece_list {
+        for pos in white {
             bitmap[board120_to_board64(*pos) as usize] = 1;
+        }
+
+        for pos in black {
+            bitmap[board120_to_board64(*pos) as usize] = -1;
         }
 
         Tensor::of_slice(&bitmap)
     };
 
-    let white_pawns = to_bitmap(&white.pawns);
-    let black_pawns = to_bitmap(&black.pawns);
-    let white_knights = to_bitmap(&white.knights);
-    let black_knights = to_bitmap(&black.knights);
-    let white_bishops = to_bitmap(&white.bishops);
-    let black_bishops = to_bitmap(&black.bishops);
-    let white_rooks = to_bitmap(&white.rooks);
-    let black_rooks = to_bitmap(&black.rooks);
-    let white_queens = to_bitmap(&white.queens);
-    let black_queens = to_bitmap(&black.queens);
-    let white_kings = to_bitmap(&white.kings);
-    let black_kings = to_bitmap(&black.kings);
+    
 
-    Tensor::cat(&[white_pawns,black_pawns,white_knights,black_knights,white_rooks,black_rooks,white_queens,black_queens,white_kings,black_kings, white_bishops, black_bishops], 0)
+    let pawns = to_bitmap(&white.pawns, &black.pawns);
+    let knights = to_bitmap(&white.knights, &black.knights);
+    let bishops = to_bitmap(&white.bishops, &black.bishops);
+    let rooks = to_bitmap(&white.rooks, &black.rooks);
+    let queens = to_bitmap(&white.queens, &black.queens);
+    let kings = to_bitmap(&white.kings, &black.kings);
+
+    Tensor::cat(&[pawns, knights, bishops, rooks, queens, kings], 0)
 }
 
 fn game_state(game: &GameInfo) -> tch::Tensor {
-    let mut game_state: Vec<i64> = vec![0; 69];
+    let mut game_state: Vec<i64> = vec![0; 18];
 
-    match game.en_passant.last().unwrap() {
-        Some(pos) => game_state[board120_to_board64(*pos) as usize] = 1,
-        None => (),
-    }
+    game_state[0] = game.white_pieces.pawns.len() as i64;
+    game_state[1] = game.white_pieces.knights.len() as i64;
+    game_state[2] = game.white_pieces.bishops.len() as i64;
+    game_state[3] = game.white_pieces.rooks.len() as i64;
+    game_state[4] = game.white_pieces.queens.len() as i64;
+    game_state[5] = game.white_pieces.kings.len() as i64;
+
+    game_state[6] = game.black_pieces.pawns.len() as i64;
+    game_state[7] = game.black_pieces.knights.len() as i64;
+    game_state[8] = game.black_pieces.bishops.len() as i64;
+    game_state[9] = game.black_pieces.rooks.len() as i64;
+    game_state[10] = game.black_pieces.queens.len() as i64;
+    game_state[11] = game.black_pieces.kings.len() as i64;
+
 
     let castling = game.castling.last().unwrap();
 
     if castling[0] {
-        game_state[64] = 1;
+        game_state[12] = 1;
     }
     if castling[1] {
-        game_state[65] = 1;
+        game_state[13] = 1;
     }
     if castling[2] {
-        game_state[66] = 1;
+        game_state[14] = 1;
     }
     if castling[3] {
-        game_state[67] = 1;
+        game_state[15] = 1;
     }
 
     match game.turn {
-        game::Color::White => game_state[68] = 1,
-        _ => (),
+        game::Color::White => game_state[16] = 1,
+        game::Color::Black => game_state[17] = -1,
     }
 
     Tensor::of_slice(&game_state)
@@ -326,10 +326,9 @@ fn attacks(game: &mut GameInfo) -> tch::Tensor {
             attacks[i] = white_attacks[i] as i64;
         }
         if black_attacks[i] > 0 {
-            attacks[i + 64] = black_attacks[i] as i64;
+            attacks[i + 64] = black_attacks[i] as i64 * -1;
         }
     }
 
     Tensor::of_slice(&attacks)
 }
-

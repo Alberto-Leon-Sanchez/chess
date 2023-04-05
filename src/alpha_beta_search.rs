@@ -12,7 +12,7 @@ static mut hash_access: u64 = 0;
 static mut alpha_cuts: u64 = 0;
 static mut beta_cuts: u64 = 0;
 
-pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::ChessCNN) -> move_gen::Move {
+pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net) -> move_gen::Move {
     let mut best_move = move_gen::Move {
         origin: 0,
         destiny: 0,
@@ -68,7 +68,7 @@ pub fn alpha_beta_max_net(
     beta: tch::Tensor,
     depth: i8,
     game: &mut game::GameInfo,
-    net: &model::ChessCNN,
+    net: &model::Net,
 ) -> tch::Tensor {
 
     let mut movements = move_gen::move_gen(game);
@@ -101,7 +101,7 @@ pub fn alpha_beta_min_net(
     beta: tch::Tensor,
     depth: i8,
     game: &mut game::GameInfo,
-    net: &model::ChessCNN,
+    net: &model::Net,
 ) -> tch::Tensor {
     
     let mut movements = move_gen::move_gen(game);
@@ -133,7 +133,7 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     let mut movements = move_gen::move_gen(game);
 
     if depth_left == 0 || movements.len() == 0 {
-        return eval::eval(game);
+        return eval::static_evaluate(game);
     }
 
     let mut alpha = alpha;
@@ -159,7 +159,7 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     let mut movements = move_gen::move_gen(game);
 
     if depth_left == 0 || movements.len() == 0{
-        return eval::eval(game);
+        return eval::static_evaluate(game);
     }
 
     let mut beta = beta;
@@ -221,7 +221,7 @@ pub fn best_move(depth_left: i8, game: &mut game::GameInfo) -> move_gen::Move {
     best_move
 }
 
-pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::ChessCNN) -> move_gen::Move {
+pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net) -> move_gen::Move {
 
     let mut best_move = move_gen::Move{
         origin: 0,

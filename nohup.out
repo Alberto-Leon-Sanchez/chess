@@ -1,0 +1,347 @@
+   Compiling chess v0.1.0 (/home/castorcabron/chess)
+warning: unused import: `tch::nn::Module`
+ --> src/eval.rs:2:5
+  |
+2 | use tch::nn::Module;
+  |     ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `crate::model::Net`
+ --> src/eval.rs:7:5
+  |
+7 | use crate::model::Net;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `alpha_beta_max`, `alpha_beta_min_net`, `alpha_beta_min`
+ --> src/model.rs:8:82
+  |
+8 | use crate::{api::{board120_to_board64, board64_to_board120}, alpha_beta_search::{alpha_beta_min_net, alpha_beta_min, alpha_beta_max}};
+  |                                                                                  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+
+warning: unused imports: `eval`, `self`
+  --> src/model.rs:17:14
+   |
+17 |     unmake::{self},
+   |              ^^^^
+18 |     eval
+   |     ^^^^
+
+warning: unused imports: `Module`, `Sequential`
+  --> src/model.rs:22:16
+   |
+22 |     nn::{self, Module, OptimizerConfig, Sequential, ConvConfig, ModuleT},
+   |                ^^^^^^                   ^^^^^^^^^^
+
+warning: unused import: `game`
+ --> src/training_parser.rs:6:37
+  |
+6 | use crate::{fen_reader, fen_writer, game, make_move, notation, move_gen, unmake};
+  |                                     ^^^^
+
+warning: unused variable: `turn`
+   --> src/eval.rs:110:5
+    |
+110 |     turn: &game::Color,
+    |     ^^^^ help: if this is intentional, prefix it with an underscore: `_turn`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: value assigned to `temp` is never read
+ --> src/perft.rs:5:13
+  |
+5 |     let mut temp: u64 = 0;
+  |             ^^^^
+  |
+  = help: maybe it is overwritten before being read?
+  = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `nodes` is never read
+  --> src/perft.rs:25:13
+   |
+25 |     let mut nodes: u64 = 0;
+   |             ^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> src/eval.rs:200:9
+    |
+200 |     let mut score: i16 = 0;
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/model.rs:251:13
+    |
+251 |         let mut score = if game.turn == game::Color::White {
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/model.rs:256:13
+    |
+256 |         let mut prediction = net.forward_t(&pre_proccess(game), true);
+    |             ----^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/notation.rs:137:9
+    |
+137 |     let mut origin;
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: static `hash_access` is never used
+  --> src/alpha_beta_search.rs:11:12
+   |
+11 | static mut hash_access: u64 = 0;
+   |            ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `order_moves` is never used
+  --> src/alpha_beta_search.rs:56:4
+   |
+56 | fn order_moves(moves: &mut Vec<move_gen::Move>, scores: &Vec<f64>) {
+   |    ^^^^^^^^^^^
+
+warning: constant `CENTRAL_CONTROL` is never used
+  --> src/eval.rs:13:7
+   |
+13 | const CENTRAL_CONTROL: [i16; 120] = [
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `PAWN_PROTECTED` is never used
+  --> src/eval.rs:26:7
+   |
+26 | const PAWN_PROTECTED: i16 = 25;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `KNIGHT_PROTECTED` is never used
+  --> src/eval.rs:27:7
+   |
+27 | const KNIGHT_PROTECTED: i16 = 15;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `BISHOP_PROTECTED` is never used
+  --> src/eval.rs:28:7
+   |
+28 | const BISHOP_PROTECTED: i16 = 15;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `ROOK_PROTECTED` is never used
+  --> src/eval.rs:29:7
+   |
+29 | const ROOK_PROTECTED: i16 = 10;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `QUEEN_PROTECTED` is never used
+  --> src/eval.rs:30:7
+   |
+30 | const QUEEN_PROTECTED: i16 = 5;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `PAWN_PROTECION` is never used
+  --> src/eval.rs:32:7
+   |
+32 | const PAWN_PROTECION: i16 = 5;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `KNIGHT_PROTECION` is never used
+  --> src/eval.rs:33:7
+   |
+33 | const KNIGHT_PROTECION: i16 = 2;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `BISHOP_PROTECION` is never used
+  --> src/eval.rs:34:7
+   |
+34 | const BISHOP_PROTECION: i16 = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `ROOK_PROTECION` is never used
+  --> src/eval.rs:35:7
+   |
+35 | const ROOK_PROTECION: i16 = 3;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `QUEEN_PROTECION` is never used
+  --> src/eval.rs:36:7
+   |
+36 | const QUEEN_PROTECION: i16 = 2;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `KING_PROTECTION` is never used
+  --> src/eval.rs:37:7
+   |
+37 | const KING_PROTECTION: i16 = 5;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `PAWN_MOVEMENT` is never used
+  --> src/eval.rs:39:7
+   |
+39 | const PAWN_MOVEMENT: i16 = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `KNIGHT_MOVEMENT` is never used
+  --> src/eval.rs:40:7
+   |
+40 | const KNIGHT_MOVEMENT: i16 = 3;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `BISHOP_MOVEMENT` is never used
+  --> src/eval.rs:41:7
+   |
+41 | const BISHOP_MOVEMENT: i16 = 5;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `ROOK_MOVEMENT` is never used
+  --> src/eval.rs:42:7
+   |
+42 | const ROOK_MOVEMENT: i16 = 5;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `QUEEN_MOVEMENT` is never used
+  --> src/eval.rs:43:7
+   |
+43 | const QUEEN_MOVEMENT: i16 = 9;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `KING_MOVEMENT` is never used
+  --> src/eval.rs:44:7
+   |
+44 | const KING_MOVEMENT: i16 = 1;
+   |       ^^^^^^^^^^^^^
+
+warning: function `mobility_conectivity_eval` is never used
+   --> src/eval.rs:105:4
+    |
+105 | fn mobility_conectivity_eval(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `piece_type_protected` is never used
+   --> src/eval.rs:167:4
+    |
+167 | fn piece_type_protected(piece: piece::PieceType) -> i16 {
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `piece_type_protection` is never used
+   --> src/eval.rs:178:4
+    |
+178 | fn piece_type_protection(piece: piece::PieceType) -> i16 {
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `center_control_eval` is never used
+   --> src/eval.rs:189:4
+    |
+189 | fn center_control_eval(attacks: &[u8; 120]) -> i16 {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `king_safety_eval` is never used
+   --> src/eval.rs:199:4
+    |
+199 | fn king_safety_eval() -> i16 {
+    |    ^^^^^^^^^^^^^^^^
+
+warning: constant `N_STEPS` is never used
+  --> src/model.rs:26:7
+   |
+26 | const N_STEPS: i64 = 12;
+   |       ^^^^^^^
+
+warning: constant `LAMBDA` is never used
+  --> src/model.rs:29:7
+   |
+29 | const LAMBDA: f64 = 0.7;
+   |       ^^^^^^
+
+warning: constant `MAX_NOT_IMPROVED` is never used
+  --> src/model.rs:30:7
+   |
+30 | const MAX_NOT_IMPROVED: i64 = 80;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `UNINITIALIZED` is never used
+  --> src/model.rs:32:7
+   |
+32 | const UNINITIALIZED: f64 = 100.00;
+   |       ^^^^^^^^^^^^^
+
+warning: fields `piece_pos`, `game_state`, `attacks`, and `hidden1` are never read
+  --> src/model.rs:37:5
+   |
+36 | pub struct Net {
+   |            --- fields in this struct
+37 |     piece_pos: tch::nn::Linear,
+   |     ^^^^^^^^^
+38 |     game_state: tch::nn::Linear,
+   |     ^^^^^^^^^^
+39 |     attacks: tch::nn::Linear,
+   |     ^^^^^^^
+40 |     hidden1: tch::nn::Linear,
+   |     ^^^^^^^
+   |
+   = note: `Net` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: function `tdl_train` is never used
+   --> src/model.rs:173:4
+    |
+173 | fn tdl_train(games: &mut Vec<GameInfo>, net: &ChessCNN, accumulated_loss: &mut f64) -> () {
+    |    ^^^^^^^^^
+
+warning: function `get_loss` is never used
+   --> src/model.rs:213:4
+    |
+213 | fn get_loss(scores: &Vec<Tensor>) -> Tensor {
+    |    ^^^^^^^^
+
+warning: static variable `hash_access` should have an upper case name
+  --> src/alpha_beta_search.rs:11:12
+   |
+11 | static mut hash_access: u64 = 0;
+   |            ^^^^^^^^^^^ help: convert the identifier to upper case: `HASH_ACCESS`
+   |
+   = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `alpha_cuts` should have an upper case name
+  --> src/alpha_beta_search.rs:12:12
+   |
+12 | static mut alpha_cuts: u64 = 0;
+   |            ^^^^^^^^^^ help: convert the identifier to upper case: `ALPHA_CUTS`
+
+warning: static variable `beta_cuts` should have an upper case name
+  --> src/alpha_beta_search.rs:13:12
+   |
+13 | static mut beta_cuts: u64 = 0;
+   |            ^^^^^^^^^ help: convert the identifier to upper case: `BETA_CUTS`
+
+warning: unused `Result` that must be used
+  --> src/training_parser.rs:72:25
+   |
+72 |                         writer.write(b"\n");
+   |                         ^^^^^^^^^^^^^^^^^^^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: `#[warn(unused_must_use)]` on by default
+
+warning: `chess` (lib) generated 49 warnings
+warning: unused import: `training_parser`
+ --> src/bin/prueba.rs:3:43
+  |
+3 | use chess::{model, zobrist_hashing::HASH, training_parser};
+  |                                           ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `chess` (bin "prueba") generated 1 warning
+    Finished dev [optimized] target(s) in 13.17s
+     Running `target/debug/prueba`
+4
+Epoch: 13736 Loss: 8.826157099576903

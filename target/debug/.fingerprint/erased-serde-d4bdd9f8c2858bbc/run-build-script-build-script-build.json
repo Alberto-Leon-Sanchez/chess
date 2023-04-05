@@ -1,1 +1,0 @@
-{"rustc":11997967678396842391,"features":"","target":0,"profile":0,"path":0,"deps":[[7374810101964753402,"build_script_build",false,3092078462277271313]],"local":[{"RerunIfChanged":{"output":"debug/build/erased-serde-d4bdd9f8c2858bbc/output","paths":["build.rs"]}}],"rustflags":[],"metadata":0,"config":0,"compile_kind":0}
