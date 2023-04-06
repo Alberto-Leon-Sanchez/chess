@@ -95,12 +95,12 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
         }
     };
 
-    let group2 = match re.get(2) {
+    let letter = match re.get(2) {
         Some(x) => fen_reader::letter_to_column(x.as_str().chars().nth(0).unwrap()),
         None => 200,
     };
 
-    let group3 = match re.get(3) {
+    let number = match re.get(3) {
         Some(x) => x.as_str().parse::<u32>().unwrap() - 1,
         None => 200,
     };
@@ -110,12 +110,12 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
         None => false,
     };
 
-    let group5 = match re.get(5) {
+    let capture_letter = match re.get(5) {
         Some(x) => fen_reader::letter_to_column(x.as_str().chars().nth(0).unwrap()),
         None => 0,
     };
 
-    let group6 = match re.get(6) {
+    let capture_number = match re.get(6) {
         Some(x) => x.as_str().parse::<u32>().unwrap() - 1,
         None => 0,
     };
@@ -139,13 +139,13 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
     let mut destiny_piece = piece::Piece::Empty;
 
     if capture {
-        destiny = fen_reader::row_column_to_index(&group6, &group5);
+        destiny = fen_reader::row_column_to_index(&capture_number, &capture_letter);
         destiny_piece = game.board[destiny as usize];
 
         if piece == piece::Piece::White(piece::PieceType::Pawn) {
             let diference;
 
-            if group2 > group5 {
+            if letter > capture_letter {
                 diference = 9;
             } else {
                 diference = 11;
@@ -155,7 +155,7 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
         } else if piece == piece::Piece::Black(piece::PieceType::Pawn) {
             let diference;
 
-            if group2 > group5 {
+            if letter > capture_letter {
                 diference = -11;
             } else {
                 diference = -9;
@@ -166,18 +166,18 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
             let origins = get_origin(destiny, game, piece);
 
             if origins.len() > 1 {
-                if group2 != 200 {
-                    origin = get_piece_in_column(origins, group2);
+                if letter != 200 {
+                    origin = get_piece_in_column(origins, letter);
                 } else {
-                    origin = get_piece_in_rank(origins, group3);
+                    origin = get_piece_in_rank(origins, number);
                 }
             } else {
                 origin = origins[0] as u32;
             }
         }
     } else {
-        if group3 != 200 && group2 != 200 {
-            destiny = fen_reader::row_column_to_index(&group3, &group2)
+        if number != 200 && letter != 200 {
+            destiny = fen_reader::row_column_to_index(&number, &letter)
         }
 
         if piece == piece::Piece::White(piece::PieceType::Pawn) {
@@ -195,13 +195,13 @@ pub fn get_move(notation: &str, game: &mut game::GameInfo) -> move_gen::Move {
         } else {
             let origins;
             if destiny == 0 {
-                destiny = fen_reader::row_column_to_index(&group6, &group5);
+                destiny = fen_reader::row_column_to_index(&capture_number, &capture_letter);
                 origins = get_origin(destiny, game, piece);
 
-                if group2 != 200 {
-                    origin = get_piece_in_column(origins, group2);
+                if letter != 200 {
+                    origin = get_piece_in_column(origins, letter);
                 } else {
-                    origin = get_piece_in_rank(origins, group3);
+                    origin = get_piece_in_rank(origins, number);
                 }
             } else {
                 origins = get_origin(destiny, game, piece);

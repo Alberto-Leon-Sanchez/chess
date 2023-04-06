@@ -5,6 +5,7 @@ use crate::zobrist_hashing;
 
 pub fn make_move(game: &mut game::GameInfo, movement: &mut move_gen::Move) {
     let piece: piece::Piece = game.board[movement.origin as usize];
+
     match piece {
         piece::Piece::Empty => {
             game.print_board();

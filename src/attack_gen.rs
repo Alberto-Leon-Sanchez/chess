@@ -10,7 +10,7 @@ pub fn attack_gen(game: &mut game::GameInfo, color: Option<&game::Color>) -> ([u
     let mut king_pos = game.black_pieces.kings.last().unwrap();
 
     let mut turn = game::Color::White;
-
+    
     match color {
         Some(color) if matches!(*color, game::Color::Black) => {
             piece_list = &game.black_pieces;

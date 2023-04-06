@@ -57,6 +57,12 @@ pub struct GameInfo {
     pub transposition_table: Vec<Eval>,
 }
 
+impl GameInfo{
+    pub fn new() -> GameInfo{
+        fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub enum Flag {
     Exact,

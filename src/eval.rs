@@ -179,8 +179,8 @@ pub fn order_moves(moves: &mut Vec<move_gen::Move>) {
     }
 }
 
-pub fn check(game: &mut game::GameInfo) -> bool {
-    let (_, attacks) = attack_gen::attack_gen(game, None);
+pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {
+    let (_, attacks) = attack_gen::attack_gen(game, Some(&color));
 
     attacks != 0
 }

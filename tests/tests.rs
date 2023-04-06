@@ -4,7 +4,7 @@ use chess::{
     move_gen::{self},
     perft::perft,
     piece, unmake,
-    zobrist_hashing::HASH,
+    zobrist_hashing::HASH, notation::get_move, game,
 };
 
 #[cfg(test)]

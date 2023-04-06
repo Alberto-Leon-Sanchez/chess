@@ -38,6 +38,9 @@ pub struct Net {
     game_state: tch::nn::Linear,
     attacks: tch::nn::Linear,
     hidden1: tch::nn::Linear,
+    hidden2: tch::nn::Linear,
+    hidden3: tch::nn::Linear,
+    hidden4: tch::nn::Linear,
 }
 
 impl Module for Net {
@@ -48,7 +51,10 @@ impl Module for Net {
 
         let cat = Tensor::cat(&[piece_pos, game_state, attacks], 0);
 
-        let result = self.hidden1.forward(&cat).tanh();
+        let hidden1 = self.hidden1.forward(&cat).relu();
+        let hidden2 = self.hidden2.forward(&hidden1).relu();
+        let hidden3 = self.hidden3.forward(&hidden2).relu();
+        let result = self.hidden4.forward(&hidden3).tanh();
 
         result
     }
@@ -67,13 +73,19 @@ pub fn model(vs: nn::Path) -> Net {
     let piece_pos = tch::nn::linear(&vs, 384, 384, Default::default());
     let game_state = tch::nn::linear(&vs, 18, 18, Default::default());
     let attacks = tch::nn::linear(&vs, 128, 128, Default::default());
-    let hidden1 = tch::nn::linear(&vs, 530, 1, Default::default());
+    let hidden1 = tch::nn::linear(&vs, 530, 400, Default::default());
+    let hidden2 = tch::nn::linear(&vs, 400, 200, Default::default());
+    let hidden3 = tch::nn::linear(&vs, 200, 100, Default::default());
+    let hidden4 = tch::nn::linear(&vs, 100, 1, Default::default());
 
     Net {
         piece_pos,
         game_state,
         attacks,
         hidden1,
+        hidden2,
+        hidden3,
+        hidden4,
     }
 }
 
@@ -98,7 +110,7 @@ pub fn train() -> () {
 
     let mut suites = suite::get_suites();
 
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden1425.pt").unwrap())).unwrap();
+    //vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden1425.pt").unwrap())).unwrap();
     
     opt.zero_grad();
 
@@ -109,7 +121,7 @@ pub fn train() -> () {
         .open("training_data/bootstraping_2_hidden.txt")
         .unwrap();
 
-    for epoch in 1426..N_EPOCHS {
+    for epoch in 0..N_EPOCHS {
         let mut accumulated_loss = 0.0;
 
         //tdl_train(&mut games, &net, &mut accumulated_loss);

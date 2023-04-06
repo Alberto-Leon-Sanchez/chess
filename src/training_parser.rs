@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Write};
 
 use rand::Rng;
 
-use crate::{fen_reader, fen_writer, game, make_move, notation, move_gen, unmake};
+use crate::{fen_reader, fen_writer, game, make_move, notation, move_gen, unmake, eval};
 
 pub fn get_training_fen(path:&str) -> (){
     
@@ -19,7 +19,7 @@ fn parse_to_fen(files: Vec<String>) {
     
     let mut writer = OpenOptions::new()
             .append(true)
-            .open("/home/castor_cabron/proyectos/chess/training_fen.txt")
+            .open("/home/castorcabron/proyectos/chess/training_fen.txt")
             .unwrap();
 
     let movement_number = regex::Regex::new(r"([0-9]*\.)").unwrap();
@@ -40,19 +40,8 @@ fn parse_to_fen(files: Vec<String>) {
         for line in reader.lines().skip(checkpoint.try_into().unwrap()) {
             let mut game =
                 fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-            checkpoint += 1;
 
             if line.as_ref().unwrap().starts_with("1.") {
-                let mut f_checkpoint = OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .truncate(true)
-                    .open("./checkpoint.txt")
-                    .unwrap();
-                f_checkpoint
-                    .write_all(checkpoint.to_string().as_bytes())
-                    .unwrap();
-
                 let a = movement_number
                     .split(line.as_ref().unwrap())
                     .collect::<Vec<&str>>();
@@ -66,6 +55,16 @@ fn parse_to_fen(files: Vec<String>) {
                             unmake::unmake_move(&mut game, last_move);
                         }
                         
+                        if game.turn == game::Color::White{
+                            if eval::check(&mut game, game::Color::White){
+                                game.turn = game::Color::Black;
+                            }
+                        }else{
+                            if eval::check(&mut game, game::Color::Black){
+                                game.turn = game::Color::White;
+                            }
+                        }
+
                         writer
                             .write(fen_writer::write_fen(&game).as_bytes())
                             .unwrap();

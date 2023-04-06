@@ -1,3 +1,5 @@
+use async_std::println;
+
 use crate::attack_gen;
 use crate::game;
 use crate::piece;
@@ -42,8 +44,9 @@ impl Move {
 
 pub fn move_gen(game: &mut game::GameInfo) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
+    
     let (attacks, attacker_pos) = attack_gen::attack_gen(game, None);
-
+    
     let mut piece_list = &mut game.white_pieces;
     let mut opposite_piece_list = &mut game.black_pieces;
     if matches!(game.turn, game::Color::Black) {
