@@ -20,7 +20,8 @@ pub fn test_model() -> () {
         .into_iter()
         .map(|x| x.unwrap().path().to_str().unwrap().to_string())
         .collect();
-    let mut vs = nn::VarStore::new(tch::Device::Cpu);
+    let device = tch::Device::cuda_if_available(); 
+    let mut vs = nn::VarStore::new(device);
     let net = model::model(vs.root());
     let suites = get_suites();
     let mut games = suites.0;
@@ -40,7 +41,7 @@ pub fn test_model() -> () {
 
             for mut movement in moves {
                 make_move::make_move(game, &mut movement);
-                let score = eval::net_eval(&mut game, &net);
+                let score = eval::net_eval(&mut game, &net, &device);
 
                 if max == UNINITIALIZED {
                     max = score;
@@ -75,7 +76,7 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64) -> i64 {
+pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64, device: &tch::Device) -> i64 {
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
@@ -85,7 +86,7 @@ pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(mov
 
     for (mut game, result) in games.iter_mut().zip(results.iter()) {
        
-        let best_move = alpha_beta_search::best_move_net(1,game, net);
+        let best_move = alpha_beta_search::best_move_net(1,game, net, device);
 
         for (movement, puntuaction) in result {
             if *movement == best_move {

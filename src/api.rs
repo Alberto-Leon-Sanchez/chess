@@ -10,6 +10,7 @@ use crate::move_gen;
 use crate::piece;
 use http_types::convert::json;
 use serde::{Deserialize, Serialize};
+use tch::nn;
 use tide;
 
 #[derive(Deserialize, Serialize)]
@@ -96,14 +97,13 @@ pub async fn get_best(request: tide::Request<()>) -> tide::Result {
     let depth = query.depth;
     let mut game = fen_reader::read_fen(&query.fen);
 
-    let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
+    let device = tch::Device::cuda_if_available(); 
+    let mut vs = nn::VarStore::new(device);
     let net = model::model(vs.root());
-    vs.load_from_stream(&mut BufReader::new(
-        File::open("./model_weights/3_hidden_1014.pt").unwrap(),
-    ))
+    vs.load_from_stream(&mut BufReader::new( File::open("./model_weights/3_hidden_1014.pt").unwrap(),))
     .unwrap();
 
-    let mut movement = alpha_beta_search::get_best(&mut game, depth, &net);
+    let mut movement = alpha_beta_search::get_best(&mut game, depth, &net,&device);
     make_move::make_move(&mut game, &mut movement);
     let fen = fen_writer::write_fen(&game);
 

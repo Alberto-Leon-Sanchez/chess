@@ -60,13 +60,13 @@ impl Module for Net {
     }
 }
 
-pub fn pre_proccess(game: &mut game::GameInfo) -> tch::Tensor {
+pub fn pre_proccess(game: &mut game::GameInfo, device: &tch::Device) -> tch::Tensor {
     let bitmaps =
         piece_lists_to_bitmaps(&game.white_pieces, &game.black_pieces).totype(tch::Kind::Float);
     let game_state = game_state(game).totype(tch::Kind::Float);
     let attacks = attacks(game).totype(tch::Kind::Float);
 
-    Tensor::cat(&[bitmaps, game_state, attacks], 0).totype(tch::Kind::Float)
+    Tensor::cat(&[bitmaps, game_state, attacks], 0).totype(tch::Kind::Float).to(*device)
 }
 
 pub fn model(vs: nn::Path) -> Net {
@@ -103,7 +103,8 @@ fn get_training_games() -> Vec<GameInfo> {
 }
 
 pub fn train() -> () {
-    let mut vs = nn::VarStore::new(tch::Device::Cpu);
+    let device = tch::Device::cuda_if_available(); 
+    let vs = nn::VarStore::new(device);
     let net = model(vs.root());
 
     let mut opt = nn::Adam::default().build(&vs, LR).unwrap();
@@ -126,7 +127,7 @@ pub fn train() -> () {
 
         //tdl_train(&mut games, &net, &mut accumulated_loss);
         opt.zero_grad(); 
-        bootstraping(&mut games, &net, &mut accumulated_loss);
+        bootstraping(&mut games, &net, &mut accumulated_loss, &device);
 
         opt.step();
         opt.zero_grad();
@@ -137,7 +138,7 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(&net,&mut suites, epoch);
+            let score = suite::test_model_net(&net,&mut suites, epoch, &device);
             println!("Epoch: {} Score: {}", epoch, score);
 
             vs.save(format!("model_weights/bootstraping_2_hidden{}.pt", epoch))
@@ -146,7 +147,7 @@ pub fn train() -> () {
     }
 }
 
-fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -> () {
+fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64, device: &tch::Device) -> () {
     let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
     let size = games.len();
@@ -169,10 +170,10 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
                 break;
             }
 
-            let mut movement = alpha_beta_search::best_move_net(DEPTH, game, net);
+            let mut movement = alpha_beta_search::best_move_net(DEPTH, game, net, device);
             make_move::make_move(game, &mut movement);
 
-            let score = net.forward_t(&pre_proccess(game),true);
+            let score = net.forward_t(&pre_proccess(game, device),true);
             scores.push(score);
         }
 
@@ -203,6 +204,7 @@ fn bootstraping(
     games: &mut Vec<GameInfo>,
     net: &Net,
     accumulated_loss: &mut f64,
+    device: &tch::Device
 ) -> () {
 
     let seed = SystemTime::now()
@@ -221,7 +223,7 @@ fn bootstraping(
         }else{
             tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game)])
         };
-        let mut prediction = net.forward_t(&pre_proccess(game), true);
+        let mut prediction = net.forward_t(&pre_proccess(game, device), true);
 
         let loss = get_loss_mae(&prediction, &score);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();

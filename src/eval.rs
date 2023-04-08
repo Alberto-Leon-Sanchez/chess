@@ -1,3 +1,4 @@
+use serde::__private::de;
 use tch::nn::ModuleT;
 
 use crate::api::board120_to_board64;
@@ -185,15 +186,15 @@ pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {
     attacks != 0
 }
 
-pub fn net_eval(game: &mut game::GameInfo, net: &model::Net) -> f64 {
+pub fn net_eval(game: &mut game::GameInfo, net: &model::Net, device: &tch::Device) -> f64 {
     tch::no_grad(|| {
-        net.forward_t(&model::pre_proccess(game), false)
+        net.forward_t(&model::pre_proccess(game, device), false)
             .double_value(&[0])
     })
 }
 
-pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::Net) -> tch::Tensor {
-    tch::no_grad(|| net.forward_t(&model::pre_proccess(game), false))
+pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::Net, device: &tch::Device) -> tch::Tensor {
+    tch::no_grad(|| net.forward_t(&model::pre_proccess(game, device), false))
 }
 
 fn scale_phase(opening_score: i32, endgame_score: i32, phase: i32) -> i32 {
