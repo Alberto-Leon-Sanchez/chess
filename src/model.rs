@@ -25,12 +25,12 @@ use tch::{
 
 const N_STEPS: i64 = 12;
 const N_EPOCHS: i64 = 1000000;
-const N_GAMES: i64 = 64;
+const N_GAMES: i64 = 256;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
-pub const DEPTH: i8 = 3;
+const DEPTH: i8 = 2;
 const UNINITIALIZED: f64 = 100.00;
-const LR: f64 = 0.0001;
+const LR: f64 = 0.001;
 
 #[derive(Debug)]
 pub struct Net {
@@ -60,13 +60,13 @@ impl Module for Net {
     }
 }
 
-pub fn pre_proccess(game: &mut game::GameInfo, device: &tch::Device) -> tch::Tensor {
+pub fn pre_proccess(game: &mut game::GameInfo) -> tch::Tensor {
     let bitmaps =
         piece_lists_to_bitmaps(&game.white_pieces, &game.black_pieces).totype(tch::Kind::Float);
     let game_state = game_state(game).totype(tch::Kind::Float);
     let attacks = attacks(game).totype(tch::Kind::Float);
 
-    Tensor::cat(&[bitmaps, game_state, attacks], 0).totype(tch::Kind::Float).to(*device)
+    Tensor::cat(&[bitmaps, game_state, attacks], 0).totype(tch::Kind::Float)
 }
 
 pub fn model(vs: nn::Path) -> Net {
@@ -103,8 +103,7 @@ fn get_training_games() -> Vec<GameInfo> {
 }
 
 pub fn train() -> () {
-    let device = tch::Device::cuda_if_available(); 
-    let vs = nn::VarStore::new(device);
+    let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
 
     let mut opt = nn::Adam::default().build(&vs, LR).unwrap();
@@ -127,7 +126,7 @@ pub fn train() -> () {
 
         //tdl_train(&mut games, &net, &mut accumulated_loss);
         opt.zero_grad(); 
-        bootstraping(&mut games, &net, &mut accumulated_loss, &device);
+        bootstraping(&mut games, &net, &mut accumulated_loss);
 
         opt.step();
         opt.zero_grad();
@@ -138,7 +137,7 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(&net,&mut suites, epoch, &device);
+            let score = suite::test_model_net(&net,&mut suites, epoch);
             println!("Epoch: {} Score: {}", epoch, score);
 
             vs.save(format!("model_weights/bootstraping_2_hidden{}.pt", epoch))
@@ -147,7 +146,7 @@ pub fn train() -> () {
     }
 }
 
-fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64, device: &tch::Device) -> () {
+fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -> () {
     let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
     let size = games.len();
@@ -170,10 +169,10 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64, d
                 break;
             }
 
-            let mut movement = alpha_beta_search::best_move_net(DEPTH, game, net, device);
+            let mut movement = alpha_beta_search::best_move_net(DEPTH, game, net);
             make_move::make_move(game, &mut movement);
 
-            let score = net.forward_t(&pre_proccess(game, device),true);
+            let score = net.forward_t(&pre_proccess(game),true);
             scores.push(score);
         }
 
@@ -204,7 +203,6 @@ fn bootstraping(
     games: &mut Vec<GameInfo>,
     net: &Net,
     accumulated_loss: &mut f64,
-    device: &tch::Device
 ) -> () {
 
     let seed = SystemTime::now()
@@ -218,14 +216,21 @@ fn bootstraping(
     for _ in 0..N_GAMES {
         let game = &mut games[rng.gen_range(0..len)].clone();
         
+        let mut movements = move_gen::move_gen(game);
+        let len = movements.len();
+
+        if len == 0 {
+            continue;
+        }
+
         let mut score = if game.turn == game::Color::White {
             tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game)])
         }else{
             tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game)])
         };
-        let mut prediction = net.forward_t(&pre_proccess(game, device), true);
+        let mut prediction = net.forward_t(&pre_proccess(game), true);
 
-        let loss = get_loss_mae(&prediction, &score);
+        let loss = get_loss_mse(&prediction, &score);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
         losses.push(loss);
     }
@@ -234,8 +239,7 @@ fn bootstraping(
         Tensor::of_slice(&[0.0]),
         |acc, x| acc + x,
     ) / tch::Tensor::of_slice(&[len as f64]);
-    *accumulated_loss /= len as f64;
-
+    
     sum_loss.backward(); 
 }
             
@@ -244,10 +248,6 @@ fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
     (next_score - score).pow(&tch::Tensor::of_slice(&[2]))
 }
 
-fn get_loss_mae(next_score: &Tensor, score: &Tensor) -> Tensor {
-    
-    (next_score - score).abs()
-}
 
 fn piece_lists_to_bitmaps(white: &PieceList, black: &PieceList) -> tch::Tensor {
     let to_bitmap = |white: &Vec<i8>, black: &Vec<i8>| -> Tensor {
@@ -345,3 +345,4 @@ fn attacks(game: &mut GameInfo) -> tch::Tensor {
 
     Tensor::of_slice(&attacks)
 }
+

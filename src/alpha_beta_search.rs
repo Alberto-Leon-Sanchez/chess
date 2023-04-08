@@ -1,5 +1,3 @@
-use tch::Device;
-
 use crate::eval;
 use crate::game;
 use crate::make_move;
@@ -14,8 +12,7 @@ static mut hash_access: u64 = 0;
 static mut alpha_cuts: u64 = 0;
 static mut beta_cuts: u64 = 0;
 
-pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net, device: &tch::Device
-) -> move_gen::Move {
+pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net) -> move_gen::Move {
     let mut best_move = move_gen::Move {
         origin: 0,
         destiny: 0,
@@ -34,7 +31,6 @@ pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net, device: 
             depth - 1,
             game,
             net,
-            device
         )
         .f_double_value(&[0])
         .unwrap();
@@ -73,13 +69,12 @@ pub fn alpha_beta_max_net(
     depth: i8,
     game: &mut game::GameInfo,
     net: &model::Net,
-    device: &tch::Device
 ) -> tch::Tensor {
 
     let mut movements = move_gen::move_gen(game);
 
     if depth == 0 || movements.len() == 0{
-        return eval::net_eval_tch(game, net, device);
+        return eval::net_eval_tch(game, net);
     }
 
     let mut alpha = alpha;
@@ -87,7 +82,7 @@ pub fn alpha_beta_max_net(
 
     for mut movement in movements {
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_min_net(alpha.copy(), beta.copy(), depth - 1, game, net, device);
+        let score = alpha_beta_min_net(alpha.copy(), beta.copy(), depth - 1, game, net);
         unmake::unmake_move(game, movement);
 
         if score.f_double_value(&[0]).unwrap() >= beta.f_double_value(&[0]).unwrap() {
@@ -107,13 +102,12 @@ pub fn alpha_beta_min_net(
     depth: i8,
     game: &mut game::GameInfo,
     net: &model::Net,
-    device: &tch::Device
 ) -> tch::Tensor {
     
     let mut movements = move_gen::move_gen(game);
 
     if depth == 0 || movements.len() == 0{
-        return eval::net_eval_tch(game, net, device);
+        return eval::net_eval_tch(game, net);
     }
 
     let mut beta = beta;
@@ -121,7 +115,7 @@ pub fn alpha_beta_min_net(
 
     for mut movement in movements {
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_max_net(alpha.copy(), beta.copy(), depth - 1, game, net, device);
+        let score = alpha_beta_max_net(alpha.copy(), beta.copy(), depth - 1, game, net);
         unmake::unmake_move(game, movement);
 
         if score.f_double_value(&[0]).unwrap() <= alpha.f_double_value(&[0]).unwrap() {
@@ -227,7 +221,7 @@ pub fn best_move(depth_left: i8, game: &mut game::GameInfo) -> move_gen::Move {
     best_move
 }
 
-pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net, device: &tch::Device) -> move_gen::Move {
+pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net) -> move_gen::Move {
 
     let mut best_move = move_gen::Move{
         origin: 0,
@@ -249,9 +243,9 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net
         make_move::make_move(game, &mut movement);
 
         let score = if maximizing {
-            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net, device)
+            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         } else {
-            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net, device)
+            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         };
 
         unmake::unmake_move(game, movement);
@@ -267,3 +261,4 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net
 
     best_move
 }
+
