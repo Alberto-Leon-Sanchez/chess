@@ -422,6 +422,23 @@ fn evaluate_kings(game: &GameInfo, phase: i32) -> i32 {
 }
 
 pub fn static_evaluate(game: &mut GameInfo) -> f64 {
+    
+    if move_gen::move_gen(game).len() == 0{
+        if game.turn == game::Color::White{
+            if check(game, game::Color::Black){
+                return -1.0
+            }else{
+                return 0.0
+            }
+        }else{
+            if check(game, game::Color::White){
+                return 1.0
+            }else{
+                return 0.0
+            }
+        }
+    }
+
     let mut ret = 0;
 
     let wqcount = game.white_pieces.queens.len() as i32;

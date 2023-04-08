@@ -25,12 +25,12 @@ use tch::{
 
 const N_STEPS: i64 = 12;
 const N_EPOCHS: i64 = 1000000;
-const N_GAMES: i64 = 256;
+const N_GAMES: i64 = 64;
 const LAMBDA: f64 = 0.7;
 const MAX_NOT_IMPROVED: i64 = 80;
-const DEPTH: i8 = 2;
+pub const DEPTH: i8 = 3;
 const UNINITIALIZED: f64 = 100.00;
-const LR: f64 = 0.001;
+const LR: f64 = 0.0001;
 
 #[derive(Debug)]
 pub struct Net {
@@ -216,13 +216,6 @@ fn bootstraping(
     for _ in 0..N_GAMES {
         let game = &mut games[rng.gen_range(0..len)].clone();
         
-        let mut movements = move_gen::move_gen(game);
-        let len = movements.len();
-
-        if len == 0 {
-            continue;
-        }
-
         let mut score = if game.turn == game::Color::White {
             tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game)])
         }else{
@@ -230,14 +223,16 @@ fn bootstraping(
         };
         let mut prediction = net.forward_t(&pre_proccess(game), true);
 
-        let loss = get_loss_mse(&prediction, &score);
+        let loss = get_loss_mae(&prediction, &score);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
         losses.push(loss);
     }
+    let len = losses.len();
     let sum_loss = losses.iter().fold(
         Tensor::of_slice(&[0.0]),
         |acc, x| acc + x,
-    );
+    ) / tch::Tensor::of_slice(&[len as f64]);
+    *accumulated_loss /= len as f64;
 
     sum_loss.backward(); 
 }
@@ -247,6 +242,10 @@ fn get_loss_mse(next_score: &Tensor, score: &Tensor) -> Tensor {
     (next_score - score).pow(&tch::Tensor::of_slice(&[2]))
 }
 
+fn get_loss_mae(next_score: &Tensor, score: &Tensor) -> Tensor {
+    
+    (next_score - score).abs()
+}
 
 fn piece_lists_to_bitmaps(white: &PieceList, black: &PieceList) -> tch::Tensor {
     let to_bitmap = |white: &Vec<i8>, black: &Vec<i8>| -> Tensor {

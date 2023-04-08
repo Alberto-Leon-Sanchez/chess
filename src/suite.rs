@@ -9,7 +9,7 @@ use tch::nn::{self};
 use crate::{
     eval, fen_reader, game::{self, GameInfo}, make_move, model,
     move_gen::{self, move_gen},
-    notation, unmake,
+    notation, unmake, alpha_beta_search
 };
 
 const UNINITIALIZED: f64 = 10.0;
@@ -84,33 +84,8 @@ pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(mov
     total_score = 0;
 
     for (mut game, result) in games.iter_mut().zip(results.iter()) {
-        let moves = move_gen(game);
-        let mut max: f64 = UNINITIALIZED;
-        let mut best_move: move_gen::Move = move_gen::Move::new();
-
-        for mut movement in moves {
-            make_move::make_move(game, &mut movement);
-            let score = eval::net_eval(&mut game, &net);
-
-            if max == UNINITIALIZED {
-                max = score;
-                best_move = movement;
-            }
-
-            if game.turn == game::Color::White {
-                if score < max {
-                    max = score;
-                    best_move = movement;
-                }
-            } else {
-                if score > max {
-                    max = score;
-                    best_move = movement;
-                }
-            }
-
-            unmake::unmake_move(game, movement);
-        }
+       
+        let best_move = alpha_beta_search::best_move_net(1,game, net);
 
         for (movement, puntuaction) in result {
             if *movement == best_move {

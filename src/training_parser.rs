@@ -19,7 +19,7 @@ fn parse_to_fen(files: Vec<String>) {
     
     let mut writer = OpenOptions::new()
             .append(true)
-            .open("/home/castorcabron/proyectos/chess/training_fen.txt")
+            .open("./training_fen.txt")
             .unwrap();
 
     let movement_number = regex::Regex::new(r"([0-9]*\.)").unwrap();
@@ -45,7 +45,7 @@ fn parse_to_fen(files: Vec<String>) {
                 let a = movement_number
                     .split(line.as_ref().unwrap())
                     .collect::<Vec<&str>>();
-                let max_turn = rng.gen_range(3..33);
+                let max_turn = rng.gen_range(3..25);
 
                 for (index, i) in a.iter().enumerate() {
 

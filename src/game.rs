@@ -21,7 +21,7 @@ const EMPTY: char = '\u{25A1}';
 //pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Color {
     White,
     Black,
