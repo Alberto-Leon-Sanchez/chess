@@ -209,3 +209,42 @@ pub fn letter_to_column(letter: char) -> u32 {
 pub fn row_column_to_index(row: &u32, column: &u32) -> usize {
     (row * ROW_SIZE + MAILBOX_OFF_SET + ROW_OFF_SET + column) as usize
 }
+
+pub fn read_fen_keep_transposition_table(fen: &str, game: &mut game::GameInfo) {
+    
+    let split: Vec<&str> = fen.split(' ').collect();
+    game.board = [Piece::Outside; 120];
+
+    complete_board(&mut game.board);
+    set_pieces(&mut game.board, split[0]);
+
+    let (white_pieces, black_pieces) = get_piece_lists(&game.board);
+
+    game.white_pieces = white_pieces;
+    game.black_pieces = black_pieces;
+
+    game.turn = get_turn(split[1]);
+
+    game.castling = get_castling(split[2]);
+
+    game.en_passant = get_en_passant(split[3]);
+
+    game.half_move_clock = get_half_move_clock(split[4]);
+
+    if split.len() == 6 {
+        game.full_move = get_full_move(split[5]);
+    } else {
+        game.full_move = 0;
+    }
+
+    unsafe {
+        game.hash = HASH.get_hash(
+            &game.black_pieces,
+            &game.white_pieces,
+            &game.turn,
+            &game.castling.last().unwrap(),
+            &game.en_passant.last().unwrap(),
+        );
+    }
+     
+}

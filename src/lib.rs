@@ -17,3 +17,4 @@ pub mod suite;
 pub mod training_parser;
 pub mod unmake;
 pub mod zobrist_hashing;
+pub mod uci;

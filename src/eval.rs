@@ -1,4 +1,3 @@
-use serde::__private::de;
 use tch::nn::ModuleT;
 
 use crate::api::board120_to_board64;
@@ -186,15 +185,15 @@ pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {
     attacks != 0
 }
 
-pub fn net_eval(game: &mut game::GameInfo, net: &model::Net, device: &tch::Device) -> f64 {
+pub fn net_eval(game: &mut game::GameInfo, net: &model::Net) -> f64 {
     tch::no_grad(|| {
-        net.forward_t(&model::pre_proccess(game, device), false)
+        net.forward_t(&model::pre_proccess(game), false)
             .double_value(&[0])
     })
 }
 
-pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::Net, device: &tch::Device) -> tch::Tensor {
-    tch::no_grad(|| net.forward_t(&model::pre_proccess(game, device), false))
+pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::Net) -> tch::Tensor {
+    tch::no_grad(|| net.forward_t(&model::pre_proccess(game), false))
 }
 
 fn scale_phase(opening_score: i32, endgame_score: i32, phase: i32) -> i32 {
@@ -424,20 +423,8 @@ fn evaluate_kings(game: &GameInfo, phase: i32) -> i32 {
 
 pub fn static_evaluate(game: &mut GameInfo) -> f64 {
     
-    if move_gen::move_gen(game).len() == 0{
-        if game.turn == game::Color::White{
-            if check(game, game::Color::Black){
-                return -1.0
-            }else{
-                return 0.0
-            }
-        }else{
-            if check(game, game::Color::White){
-                return 1.0
-            }else{
-                return 0.0
-            }
-        }
+    if let Some(value) = is_game_over(game) {
+        return value;
     }
 
     let mut ret = 0;
@@ -613,5 +600,24 @@ pub fn static_evaluate(game: &mut GameInfo) -> f64 {
     };
 
     (1e-3 * ret as f64).tanh()
+}
+
+pub fn is_game_over(game: &mut GameInfo) -> Option<f64> {
+    if move_gen::move_gen(game).len() == 0{
+        if game.turn == game::Color::White{
+            if check(game, game::Color::Black){
+                return Some(-1.0)
+            }else{
+                return Some(0.0)
+            }
+        }else{
+            if check(game, game::Color::White){
+                return Some(1.0)
+            }else{
+                return Some(0.0)
+            }
+        }
+    }
+    None
 }
 

@@ -69664,3 +69664,204 @@ Epoch: 31703 Loss: 0.1895760033562092
 Epoch: 31704 Loss: 0.12296308322528071
 Epoch: 31705 Loss: 0.15943826300724215
 Epoch: 31705 Score: 2566
+   Compiling chess v0.1.0 (/home/castorcabron/proyectos/chess)
+warning: unused imports: `alpha_beta_max`, `alpha_beta_min_net`, `alpha_beta_min`
+ --> src/model.rs:8:82
+  |
+8 | use crate::{api::{board120_to_board64, board64_to_board120}, alpha_beta_search::{alpha_beta_min_net, alpha_beta_min, alpha_beta_max}};
+  |                                                                                  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `eval`, `self`
+  --> src/model.rs:17:14
+   |
+17 |     unmake::{self},
+   |              ^^^^
+18 |     eval
+   |     ^^^^
+
+warning: unused imports: `ConvConfig`, `Sequential`
+  --> src/model.rs:22:41
+   |
+22 |     nn::{self, Module, OptimizerConfig, Sequential, ConvConfig, ModuleT},
+   |                                         ^^^^^^^^^^  ^^^^^^^^^^
+
+warning: unused import: `async_std::println`
+ --> src/move_gen.rs:1:5
+  |
+1 | use async_std::println;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: value assigned to `temp` is never read
+ --> src/perft.rs:5:13
+  |
+5 |     let mut temp: u64 = 0;
+  |             ^^^^
+  |
+  = note: `#[warn(unused_assignments)]` on by default
+  = help: maybe it is overwritten before being read?
+
+warning: value assigned to `nodes` is never read
+  --> src/perft.rs:25:13
+   |
+25 |     let mut nodes: u64 = 0;
+   |             ^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> src/model.rs:106:9
+    |
+106 |     let mut vs = nn::VarStore::new(tch::Device::Cpu);
+    |         ----^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+   --> src/model.rs:219:13
+    |
+219 |         let mut movements = move_gen::move_gen(game);
+    |             ----^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/model.rs:226:13
+    |
+226 |         let mut score = if game.turn == game::Color::White {
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/model.rs:231:13
+    |
+231 |         let mut prediction = net.forward_t(&pre_proccess(game), true);
+    |             ----^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src/notation.rs:137:9
+    |
+137 |     let mut origin;
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/suite.rs:86:10
+   |
+86 |     for (mut game, result) in games.iter_mut().zip(results.iter()) {
+   |          ----^^^^
+   |          |
+   |          help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> src/training_parser.rs:38:13
+   |
+38 |         let mut checkpoint: i64 = 0;
+   |             ----^^^^^^^^^^
+   |             |
+   |             help: remove this `mut`
+
+warning: static `hash_access` is never used
+  --> src/alpha_beta_search.rs:11:12
+   |
+11 | static mut hash_access: u64 = 0;
+   |            ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `order_moves` is never used
+  --> src/alpha_beta_search.rs:56:4
+   |
+56 | fn order_moves(moves: &mut Vec<move_gen::Move>, scores: &Vec<f64>) {
+   |    ^^^^^^^^^^^
+
+warning: constant `WK` is never used
+  --> src/eval.rs:14:7
+   |
+14 | const WK: usize = 0;
+   |       ^^
+
+warning: constant `BK` is never used
+  --> src/eval.rs:20:7
+   |
+20 | const BK: usize = 6;
+   |       ^^
+
+warning: constant `MAX_POSITIONAL_SCORE` is never used
+  --> src/eval.rs:36:7
+   |
+36 | const MAX_POSITIONAL_SCORE: i32 = 150;
+   |       ^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `N_STEPS` is never used
+  --> src/model.rs:26:7
+   |
+26 | const N_STEPS: i64 = 12;
+   |       ^^^^^^^
+
+warning: constant `LAMBDA` is never used
+  --> src/model.rs:29:7
+   |
+29 | const LAMBDA: f64 = 0.7;
+   |       ^^^^^^
+
+warning: constant `MAX_NOT_IMPROVED` is never used
+  --> src/model.rs:30:7
+   |
+30 | const MAX_NOT_IMPROVED: i64 = 80;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `UNINITIALIZED` is never used
+  --> src/model.rs:32:7
+   |
+32 | const UNINITIALIZED: f64 = 100.00;
+   |       ^^^^^^^^^^^^^
+
+warning: function `tdl_train` is never used
+   --> src/model.rs:149:4
+    |
+149 | fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -> () {
+    |    ^^^^^^^^^
+
+warning: function `get_loss` is never used
+   --> src/model.rs:189:4
+    |
+189 | fn get_loss(scores: &Vec<Tensor>) -> Tensor {
+    |    ^^^^^^^^
+
+warning: static variable `hash_access` should have an upper case name
+  --> src/alpha_beta_search.rs:11:12
+   |
+11 | static mut hash_access: u64 = 0;
+   |            ^^^^^^^^^^^ help: convert the identifier to upper case: `HASH_ACCESS`
+   |
+   = note: `#[warn(non_upper_case_globals)]` on by default
+
+warning: static variable `alpha_cuts` should have an upper case name
+  --> src/alpha_beta_search.rs:12:12
+   |
+12 | static mut alpha_cuts: u64 = 0;
+   |            ^^^^^^^^^^ help: convert the identifier to upper case: `ALPHA_CUTS`
+
+warning: static variable `beta_cuts` should have an upper case name
+  --> src/alpha_beta_search.rs:13:12
+   |
+13 | static mut beta_cuts: u64 = 0;
+   |            ^^^^^^^^^ help: convert the identifier to upper case: `BETA_CUTS`
+
+warning: unused `Result` that must be used
+  --> src/training_parser.rs:71:25
+   |
+71 |                         writer.write(b"\n");
+   |                         ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_must_use)]` on by default
+   = note: this `Result` may be an `Err` variant, which should be handled
+
