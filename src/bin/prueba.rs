@@ -1,4 +1,4 @@
-use std::{env, io::BufRead, fs};
+use std::{env, io::BufRead, fs, io::BufReader};
 use regex;
 use chess::{model, zobrist_hashing::HASH, training_parser, fen_reader, alpha_beta_search::alpha_beta_min};
 use tch;
@@ -7,9 +7,10 @@ fn main() {
     unsafe {
         HASH.randomize();
     }
-       
+    
     tch::set_num_threads(4);
     println!("{}",tch::get_num_threads());
     model::train();
+    
     
 }

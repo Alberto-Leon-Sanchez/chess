@@ -51,7 +51,7 @@ pub struct GameInfo {
     pub turn: Color,
     pub castling: Vec<[bool; 4]>,
     pub en_passant: Vec<Option<i8>>,
-    pub half_move_clock: Vec<u8>,
+    pub half_move_clock: Vec<u16>,
     pub full_move: i32,
     pub hash: u64,
     pub transposition_table: Vec<Eval>,

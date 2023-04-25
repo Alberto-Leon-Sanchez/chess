@@ -174,10 +174,10 @@ fn get_en_passant(fen: &str) -> Vec<Option<i8>> {
     en_passant
 }
 
-fn get_half_move_clock(fen: &str) -> Vec<u8> {
-    let mut half_move_clock: Vec<u8> = Vec::new();
+fn get_half_move_clock(fen: &str) -> Vec<u16> {
+    let mut half_move_clock: Vec<u16> = Vec::new();
 
-    let clock: u8 = match fen.parse() {
+    let clock: u16 = match fen.parse() {
         Ok(clock) => clock,
         Err(_) => 0,
     };

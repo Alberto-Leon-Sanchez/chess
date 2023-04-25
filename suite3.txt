@@ -1,173 +1,122 @@
-893
-893
-889
-909
-907
-880
-890
-896
-889
-874
-874
-875
-877
-898
-902
-912
-926
-920
-917
-924
-912
-895
-913
-896
-891
-878
-878
-884
-879
-871
-871
-880
-880
-887
-894
-893
-918
-911
-914
-909
-898
-888
-876
-876
-881
-891
-902
-893
-897
-892
-912
-910
-925
-926
-930
-913
-932
-944
-951
-951
-949
-949
-966
-959
-957
-963
-971
-978
-978
-979
-974
-973
-982
-977
-987
-983
-1003
-995
-995
-985
-997
-1009
-1007
-1025
-1010
-1030
-1044
-1049
-1051
-1047
-1047
-1069
-1069
-1099
-1103
-1096
-1090
-1082
-1092
-1085
-1080
-1090
-1092
-1108
-1105
-1113
-1100
-1090
-1101
-1101
-1091
-1106
-1118
-1116
-1119
-1130
-1130
-1140
-1150
-1141
-1135
-1128
-1117
-1108
-1127
-1127
-1147
-1161
-1161
-1144
-1144
-1153
-1153
-1136
-1129
-1144
-1144
-1144
-1142
-1142
-1143
-1144
-1139
-1121
-1129
-1148
-1148
-1146
-1156
-1157
-1140
-1148
-1148
-1136
-1165
-1177
-1172
-1174
-1179
-1179
-1179
-1165
-1167
-1167
-1177
-1185
-1158
-1158
-1158
-1157
-1170
-1166
-1177
+Epoch:0 Score:2924
+Epoch:20 Score:2881
+Epoch:40 Score:2900
+Epoch:60 Score:2874
+Epoch:80 Score:2834
+Epoch:100 Score:2837
+Epoch:120 Score:2836
+Epoch:140 Score:2821
+Epoch:160 Score:2829
+Epoch:180 Score:2820
+Epoch:200 Score:2829
+Epoch:220 Score:2817
+Epoch:240 Score:2780
+Epoch:260 Score:2794
+Epoch:280 Score:2816
+Epoch:300 Score:2807
+Epoch:320 Score:2783
+Epoch:340 Score:2784
+Epoch:360 Score:2759
+Epoch:380 Score:2754
+Epoch:400 Score:2751
+Epoch:420 Score:2739
+Epoch:440 Score:2762
+Epoch:460 Score:2755
+Epoch:480 Score:2781
+Epoch:500 Score:2767
+Epoch:520 Score:2757
+Epoch:540 Score:2772
+Epoch:560 Score:2770
+Epoch:580 Score:2724
+Epoch:600 Score:2691
+Epoch:620 Score:2709
+Epoch:640 Score:2692
+Epoch:660 Score:2659
+Epoch:680 Score:2681
+Epoch:700 Score:2684
+Epoch:720 Score:2664
+Epoch:740 Score:2674
+Epoch:760 Score:2674
+Epoch:780 Score:2674
+Epoch:800 Score:2674
+Epoch:820 Score:2683
+Epoch:840 Score:2688
+Epoch:860 Score:2698
+Epoch:880 Score:2698
+Epoch:900 Score:2625
+Epoch:920 Score:2650
+Epoch:940 Score:2617
+Epoch:960 Score:2605
+Epoch:980 Score:2605
+Epoch:1000 Score:2605
+Epoch:1020 Score:2615
+Epoch:1040 Score:2615
+Epoch:1060 Score:2615
+Epoch:1080 Score:2605
+Epoch:1100 Score:2605
+Epoch:1120 Score:2605
+Epoch:1140 Score:2605
+Epoch:1160 Score:2605
+Epoch:1180 Score:2605
+Epoch:1200 Score:2605
+Epoch:1220 Score:2619
+Epoch:1240 Score:2619
+Epoch:1260 Score:2614
+Epoch:1280 Score:2614
+Epoch:1300 Score:2614
+Epoch:1320 Score:2610
+Epoch:1340 Score:2615
+Epoch:1360 Score:2615
+Epoch:1380 Score:2623
+Epoch:1400 Score:2613
+Epoch:1420 Score:2603
+Epoch:1440 Score:2601
+Epoch:1460 Score:2601
+Epoch:1480 Score:2601
+Epoch:1500 Score:2601
+Epoch:1520 Score:2601
+Epoch:1540 Score:2601
+Epoch:1560 Score:2594
+Epoch:1580 Score:2594
+Epoch:1600 Score:2594
+Epoch:1620 Score:2584
+Epoch:1640 Score:2584
+Epoch:1660 Score:2584
+Epoch:1680 Score:2590
+Epoch:1700 Score:2590
+Epoch:1720 Score:2590
+Epoch:1740 Score:2590
+Epoch:1760 Score:2596
+Epoch:1780 Score:2554
+Epoch:1800 Score:2505
+Epoch:1820 Score:2515
+Epoch:1840 Score:2509
+Epoch:1860 Score:2509
+Epoch:1880 Score:2509
+Epoch:1900 Score:2509
+Epoch:1920 Score:2515
+Epoch:1940 Score:2515
+Epoch:1960 Score:2515
+Epoch:1980 Score:2515
+Epoch:2000 Score:2515
+Epoch:2020 Score:2515
+Epoch:2040 Score:2515
+Epoch:2060 Score:2515
+Epoch:2080 Score:2509
+Epoch:2100 Score:2509
+Epoch:2120 Score:2509
+Epoch:2140 Score:2509
+Epoch:2160 Score:2509
+Epoch:2180 Score:2544
+Epoch:2200 Score:2570
+Epoch:2220 Score:2580
+Epoch:2240 Score:2570
+Epoch:2260 Score:2560
+Epoch:2280 Score:2560
+Epoch:2300 Score:2553
+Epoch:2320 Score:2553
+Epoch:2340 Score:2553
+Epoch:2360 Score:2553
+Epoch:2380 Score:2553
+Epoch:2400 Score:2553
+Epoch:2420 Score:2553

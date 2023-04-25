@@ -186,14 +186,13 @@ pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {
 }
 
 pub fn net_eval(game: &mut game::GameInfo, net: &model::Net) -> f64 {
-    tch::no_grad(|| {
-        net.forward_t(&model::pre_proccess(game), false)
+    net.forward_t(&model::pre_proccess(game), true)
             .double_value(&[0])
-    })
+
 }
 
 pub fn net_eval_tch(game: &mut game::GameInfo, net: &model::Net) -> tch::Tensor {
-    tch::no_grad(|| net.forward_t(&model::pre_proccess(game), false))
+     net.forward_t(&model::pre_proccess(game), true)
 }
 
 fn scale_phase(opening_score: i32, endgame_score: i32, phase: i32) -> i32 {
