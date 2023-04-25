@@ -1,3 +1,3 @@
-> ./suite2.txt
-> ./training_data/bootstraping_2_hidden.txt
+> ./suite4.txt
+> ./training_data/4_hidden.txt
 nohup cargo run --bin prueba &

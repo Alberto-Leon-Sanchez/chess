@@ -79,13 +79,13 @@ pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(mov
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
-    let mut suite_results = OpenOptions::new().append(true).open("./suite2.txt").unwrap();
+    let mut suite_results = OpenOptions::new().append(true).open("./suite9.txt").unwrap();
 
     total_score = 0;
 
     for (mut game, result) in games.iter_mut().zip(results.iter()) {
        
-        let best_move = alpha_beta_search::best_move_net(1,game, net);
+        let (_,best_move) = tch::no_grad(|| alpha_beta_search::best_move_net(1,game, net));
 
         for (movement, puntuaction) in result {
             if *movement == best_move {
@@ -148,3 +148,4 @@ pub fn get_suites() -> (Vec<game::GameInfo>, Vec<Vec<(move_gen::Move, i64)>>) {
 
     (games, results)
 }
+

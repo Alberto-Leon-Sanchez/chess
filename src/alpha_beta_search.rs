@@ -26,24 +26,23 @@ pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net) -> move_
     for mut mov in moves {
         make_move::make_move(game, &mut mov);
         let score = alpha_beta_min_net(
-            tch::Tensor::of_slice(&[f64::MIN]),
-            tch::Tensor::of_slice(&[f64::MAX]),
+                tch::Tensor::of_slice(&[-1]),
+                tch::Tensor::of_slice(&[1]),
             depth - 1,
             game,
             net,
-        )
-        .f_double_value(&[0])
-        .unwrap();
-
+        );
+        
         if best_score == UNINITIALIZED {
-            best_score = score;
+            best_score = score.double_value(&[0]);
             best_move = mov
         }
 
-        if score > best_score {
-            best_score = score;
+        if  score.double_value(&[0]) > best_score {
+            best_score = score.double_value(&[0]);
             best_move = mov;
         }
+        
 
         unmake::unmake_move(game, mov);
     }
@@ -73,7 +72,23 @@ pub fn alpha_beta_max_net(
 
     let mut movements = move_gen::move_gen(game);
 
-    if depth == 0 || movements.len() == 0{
+    if movements.len() == 0{
+        if game.turn == game::Color::White{
+            if eval::check(game, game::Color::Black){
+                return tch::Tensor::of_slice(&[-1.0]).set_requires_grad(true);
+            }else{
+                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
+            }
+        }else{
+          if eval::check(game, game::Color::Black){
+                return tch::Tensor::of_slice(&[1.0]).set_requires_grad(true);
+            }else{
+                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
+            } 
+        }
+    }
+
+    if depth == 0 {
         return eval::net_eval_tch(game, net);
     }
 
@@ -85,11 +100,11 @@ pub fn alpha_beta_max_net(
         let score = alpha_beta_min_net(alpha.copy(), beta.copy(), depth - 1, game, net);
         unmake::unmake_move(game, movement);
 
-        if score.f_double_value(&[0]).unwrap() >= beta.f_double_value(&[0]).unwrap() {
+       if score.double_value(&[0]) >= beta.double_value(&[0]) {
             return beta;
         }
 
-        if score.f_double_value(&[0]).unwrap() > alpha.f_double_value(&[0]).unwrap() {
+        if score.double_value(&[0]) > alpha.double_value(&[0]) {
             alpha = score;
         }
     }
@@ -105,8 +120,24 @@ pub fn alpha_beta_min_net(
 ) -> tch::Tensor {
     
     let mut movements = move_gen::move_gen(game);
+    
+    if movements.len() == 0{
+        if game.turn == game::Color::White{
+            if eval::check(game, game::Color::Black){
+                return tch::Tensor::of_slice(&[-1.0]).set_requires_grad(true);
+            }else{
+                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
+            }
+        }else{
+          if eval::check(game, game::Color::Black){
+                return tch::Tensor::of_slice(&[1.0]).set_requires_grad(true);
+            }else{
+                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
+            } 
+        }
+    } 
 
-    if depth == 0 || movements.len() == 0{
+    if depth == 0{
         return eval::net_eval_tch(game, net);
     }
 
@@ -118,16 +149,17 @@ pub fn alpha_beta_min_net(
         let score = alpha_beta_max_net(alpha.copy(), beta.copy(), depth - 1, game, net);
         unmake::unmake_move(game, movement);
 
-        if score.f_double_value(&[0]).unwrap() <= alpha.f_double_value(&[0]).unwrap() {
+        if score.double_value(&[0]) <= alpha.double_value(&[0]) {
             return alpha;
         }
 
-        if score.f_double_value(&[0]).unwrap() < beta.f_double_value(&[0]).unwrap() {
+        if score.double_value(&[0]) < beta.double_value(&[0]) {
             beta = score;
-        }
+        }       
     }
     beta
 }
+   
 pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo) -> f64 {
     
     let mut movements = move_gen::move_gen(game);
@@ -221,7 +253,7 @@ pub fn best_move(depth_left: i8, game: &mut game::GameInfo) -> move_gen::Move {
     best_move
 }
 
-pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net) -> move_gen::Move {
+pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net) -> (tch::Tensor, move_gen::Move) {
 
     let mut best_move = move_gen::Move{
         origin: 0,
@@ -232,8 +264,8 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net
 
 
     if depth_left == 0 {
-        return best_move
-    }
+        return (tch::Tensor::of_slice(&[0]),best_move)
+    } 
 
     let maximizing = game.turn == game::Color::White;
     let movements = move_gen::move_gen(game);
@@ -243,21 +275,23 @@ pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net
         make_move::make_move(game, &mut movement);
 
         let score = if maximizing {
-            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
+            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]), tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         } else {
-            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]),tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
+            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]), tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
         };
 
         unmake::unmake_move(game, movement);
 
-        if maximizing && score.double_value(&[0]) > best_score.double_value(&[0])  {
+        if maximizing && score.double_value(&[0]) > best_score.double_value(&[0])   {
             best_score = score;
             best_move = movement;
-        } else if !maximizing && score.double_value(&[0]) < best_score.double_value(&[0])  {
+        } else if !maximizing &&  score.double_value(&[0]) < best_score.double_value(&[0])   {
             best_score = score;
             best_move = movement;
         }
     }
 
-    best_move
+    (best_score,best_move)
 }
+
+

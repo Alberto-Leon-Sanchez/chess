@@ -94,7 +94,7 @@ fn play_engine_turn(stdin: &mut std::process::ChildStdin, stdout: &mut std::proc
 
 fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameInfo, moves: &mut Vec<String>, net: Option<&model::Net>) -> Result<(), Box<dyn std::error::Error>> {
     let mut best_move = match net {
-        Some(net) => alpha_beta_search::best_move_net(3, game, net),
+        Some(net) => alpha_beta_search::best_move_net(3, game, net).1,
         None => alpha_beta_search::best_move(5, game),
     };
     make_move::make_move(game, &mut best_move);

@@ -139,3 +139,4 @@ fn letter_to_piece(mut letter: String) -> Option<piece::PieceType> {
         _ => None,
     }
 }
+
