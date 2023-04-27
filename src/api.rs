@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::BufReader;
+use std::time::Duration;
 
 use crate::alpha_beta_search;
 use crate::fen_reader;
@@ -34,7 +35,7 @@ struct MoveFen {
 #[derive(Deserialize)]
 struct BestMove {
     fen: String,
-    depth: i8,
+    depth: i64,
 }
 
 pub async fn get_moves(request: tide::Request<()>) -> tide::Result {
@@ -98,12 +99,9 @@ pub async fn get_best(request: tide::Request<()>) -> tide::Result {
 
     let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
     let net = model::model(vs.root());
-    vs.load_from_stream(&mut BufReader::new(
-        File::open("./model_weights/3_hidden_1014.pt").unwrap(),
-    ))
-    .unwrap();
+    vs.load_from_stream(&mut BufReader::new(File::open("./final_weights/8_hidden168000.pt").unwrap())).unwrap();
 
-    let mut movement = alpha_beta_search::get_best(&mut game, depth, &net);
+    let mut movement = alpha_beta_search::iterative_deepening_time_limit_net(&mut game, 100, Duration::from_millis(depth.try_into().unwrap()),&net).unwrap();
     make_move::make_move(&mut game, &mut movement);
     let fen = fen_writer::write_fen(&game);
 

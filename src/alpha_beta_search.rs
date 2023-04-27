@@ -1,3 +1,8 @@
+use std::time::Duration;
+use std::time::Instant;
+
+use serde::__private::de;
+
 use crate::eval;
 use crate::game;
 use crate::make_move;
@@ -12,156 +17,184 @@ static mut hash_access: u64 = 0;
 static mut alpha_cuts: u64 = 0;
 static mut beta_cuts: u64 = 0;
 
-pub fn get_best(game: &mut game::GameInfo, depth: i8, net: &model::Net) -> move_gen::Move {
-    let mut best_move = move_gen::Move {
-        origin: 0,
-        destiny: 0,
-        destiny_piece: piece::Piece::Empty,
-        promotion: None,
-    };
-    let mut best_score: f64 = 100.00;
-
-    let moves = move_gen::move_gen(game);
-
-    for mut mov in moves {
-        make_move::make_move(game, &mut mov);
-        let score = alpha_beta_min_net(
-                tch::Tensor::of_slice(&[-1]),
-                tch::Tensor::of_slice(&[1]),
-            depth - 1,
-            game,
-            net,
-        );
-        
-        if best_score == UNINITIALIZED {
-            best_score = score.double_value(&[0]);
-            best_move = mov
-        }
-
-        if  score.double_value(&[0]) > best_score {
-            best_score = score.double_value(&[0]);
-            best_move = mov;
-        }
-        
-
-        unmake::unmake_move(game, mov);
-    }
-
-    println!("{},{}", unsafe { beta_cuts }, unsafe { alpha_cuts });
-
-    best_move
-}
-
-fn order_moves(moves: &mut Vec<move_gen::Move>, scores: &Vec<f64>) {
-    for i in 0..moves.len() - 1 {
-        for j in i + 1..moves.len() {
-            if scores[i] < scores[j] {
-                moves.swap(i, j);
-            }
-        }
-    }
-}
-
 pub fn alpha_beta_max_net(
-    alpha: tch::Tensor,
-    beta: tch::Tensor,
-    depth: i8,
+    alpha: f64,
+    beta: f64,
+    depth_left: i8,
     game: &mut game::GameInfo,
+    pv: &mut Vec<move_gen::Move>,
+    start_time: &Instant,
+    time_limit: Duration,
     net: &model::Net,
-) -> tch::Tensor {
-
+    ) -> f64 {
+        
     let mut movements = move_gen::move_gen(game);
-
-    if movements.len() == 0{
-        if game.turn == game::Color::White{
-            if eval::check(game, game::Color::Black){
-                return tch::Tensor::of_slice(&[-1.0]).set_requires_grad(true);
-            }else{
-                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
-            }
-        }else{
-          if eval::check(game, game::Color::Black){
-                return tch::Tensor::of_slice(&[1.0]).set_requires_grad(true);
-            }else{
-                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
-            } 
+    
+    if depth_left == 0 || movements.len() == 0 {
+        return eval::net_eval(game, net);
+    }
+    
+    let mut alpha = alpha;
+    let mut beta = beta;
+    
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth >= depth_left{
+        match game.transposition_table[index].flag{
+            game::Flag::Exact => return game.transposition_table[index].value,
+            game::Flag::Lowerbound => alpha = alpha.max(game.transposition_table[index].value),
+            game::Flag::Upperbound => beta = beta.min(game.transposition_table[index].value),
+        }
+        if alpha >= beta {
+            return game.transposition_table[index].value;
         }
     }
-
-    if depth == 0 {
-        return eval::net_eval_tch(game, net);
-    }
-
-    let mut alpha = alpha;
-    eval::order_moves(&mut movements);
-
+    
+    let mut new_pv: Vec<move_gen::Move> = Vec::new();
+    let mut first = false;
+    
+    eval::order_moves(&mut movements, &pv);
+    
     for mut movement in movements {
+    
+        if start_time.elapsed() >= time_limit {
+            return -100.0;
+        }
+    
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_min_net(alpha.copy(), beta.copy(), depth - 1, game, net);
+    
+        let mut score;
+        if first {
+            score = alpha_beta_min_net(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            first = false;
+        } else {
+            score = alpha_beta_min_net(beta - 1.0, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            if score > alpha && score < beta {
+                score = alpha_beta_min_net(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            }
+        }
         unmake::unmake_move(game, movement);
-
-       if score.double_value(&[0]) >= beta.double_value(&[0]) {
+    
+        if score >= beta {
             return beta;
         }
-
-        if score.double_value(&[0]) > alpha.double_value(&[0]) {
+    
+        if score > alpha {
             alpha = score;
+            pv.clear();
+            pv.push(movement);
+            pv.append(&mut new_pv);
         }
     }
+    
+    let flag = if alpha <= alpha {
+        game::Flag::Upperbound
+    } else if alpha >= beta {
+        game::Flag::Lowerbound
+    } else {
+        game::Flag::Exact
+    };
+    
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    
+    game.transposition_table[index].zobrist_key = game.hash;
+    game.transposition_table[index].flag = flag;
+    game.transposition_table[index].depth = depth_left;
+    game.transposition_table[index].value = alpha;
+    
     alpha
 }
 
 pub fn alpha_beta_min_net(
-    alpha: tch::Tensor,
-    beta: tch::Tensor,
-    depth: i8,
+    alpha: f64,
+    beta: f64,
+    depth_left: i8,
     game: &mut game::GameInfo,
+    pv: &mut Vec<move_gen::Move>,
+    start_time: &Instant,
+    time_limit: Duration,
     net: &model::Net,
-) -> tch::Tensor {
-    
+    ) -> f64 {
+        
     let mut movements = move_gen::move_gen(game);
     
-    if movements.len() == 0{
-        if game.turn == game::Color::White{
-            if eval::check(game, game::Color::Black){
-                return tch::Tensor::of_slice(&[-1.0]).set_requires_grad(true);
-            }else{
-                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
-            }
-        }else{
-          if eval::check(game, game::Color::Black){
-                return tch::Tensor::of_slice(&[1.0]).set_requires_grad(true);
-            }else{
-                return tch::Tensor::of_slice(&[0.0]).set_requires_grad(true);
-            } 
-        }
-    } 
-
-    if depth == 0{
-        return eval::net_eval_tch(game, net);
+    if depth_left == 0 || movements.len() == 0 {
+        return eval::net_eval(game, net);
     }
-
+    
+    let mut alpha = alpha;
     let mut beta = beta;
-    eval::order_moves(&mut movements);
-
+    
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth >= depth_left{
+        match game.transposition_table[index].flag{
+            game::Flag::Exact => return game.transposition_table[index].value,
+            game::Flag::Lowerbound => alpha = alpha.max(game.transposition_table[index].value),
+            game::Flag::Upperbound => beta = beta.min(game.transposition_table[index].value),
+        }
+        if alpha >= beta {
+            return game.transposition_table[index].value;
+        }
+    }
+    
+    let mut new_pv: Vec<move_gen::Move> = Vec::new();
+    let mut first = false;
+    
+    eval::order_moves(&mut movements, &pv);
+    
     for mut movement in movements {
+    
+        if start_time.elapsed() >= time_limit {
+            return 100.0;
+        }
+    
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_max_net(alpha.copy(), beta.copy(), depth - 1, game, net);
+    
+        let mut score;
+        if first {
+            score = alpha_beta_max_net(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            first = false;
+        } else {
+            score = alpha_beta_max_net(alpha, beta - 1.0, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            if score < beta && score > alpha {
+                score = alpha_beta_max_net(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, net);
+            }
+        }
         unmake::unmake_move(game, movement);
-
-        if score.double_value(&[0]) <= alpha.double_value(&[0]) {
+    
+        if score <= alpha {
             return alpha;
         }
-
-        if score.double_value(&[0]) < beta.double_value(&[0]) {
+    
+        if score < beta {
             beta = score;
-        }       
+            pv.clear();
+            pv.push(movement);
+            pv.append(&mut new_pv);
+        }
     }
+    
+    let flag = if beta <= alpha {
+        game::Flag::Lowerbound
+    } else if beta >= beta {
+        game::Flag::Upperbound
+    } else {
+        game::Flag::Exact
+    };
+    
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    
+    game.transposition_table[index].zobrist_key = game.hash;
+    game.transposition_table[index].flag = flag;
+    game.transposition_table[index].depth = depth_left;
+    game.transposition_table[index].value = beta;
+    
     beta
+    
 }
    
-pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo) -> f64 {
-    
+
+pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo, pv: &mut Vec<move_gen::Move>,start_time: &Instant, time_limit: Duration) -> f64 {
+
     let mut movements = move_gen::move_gen(game);
 
     if depth_left == 0 || movements.len() == 0 {
@@ -169,10 +202,44 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }
 
     let mut alpha = alpha;
-    eval::order_moves(&mut movements);
+    let mut beta = beta;
+    /* 
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth >= depth_left{
+        match game.transposition_table[index].flag{
+            game::Flag::Exact => return game.transposition_table[index].value,
+            game::Flag::Lowerbound => alpha = alpha.max(game.transposition_table[index].value),
+            game::Flag::Upperbound => beta = beta.min(game.transposition_table[index].value),
+        }
+        if alpha >= beta {
+            return game.transposition_table[index].value;
+        }
+    }
+    */
+    let mut new_pv: Vec<move_gen::Move> = Vec::new();
+    let mut first = false;
+
+    eval::order_moves(&mut movements, &pv);
+
     for mut movement in movements {
+
+        if start_time.elapsed() >= time_limit {
+            return -100.0;
+        }
+
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_min(alpha, beta, depth_left - 1, game);
+        
+        let mut score;
+        if first{
+            score = alpha_beta_min(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit);
+            first = false;
+            //pv.push(movement);
+        }else{
+            score = alpha_beta_min(beta - 1.0, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit);
+            if score > alpha && score < beta {
+                score = alpha_beta_min(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit);
+            }
+        }
         unmake::unmake_move(game, movement);
 
         if score >= beta {
@@ -181,12 +248,31 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
 
         if score > alpha {
             alpha = score; 
+            pv.clear();
+            pv.push(movement);
+            pv.append(&mut new_pv);
         }
     }
+    /* 
+    let flag = if alpha <= alpha {
+        game::Flag::Upperbound
+    } else if alpha >= beta {
+        game::Flag::Lowerbound
+    } else {
+        game::Flag::Exact
+    };
+
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    
+    game.transposition_table[index].zobrist_key = game.hash;
+    game.transposition_table[index].flag = flag;
+    game.transposition_table[index].depth = depth_left;
+    game.transposition_table[index].value = alpha;
+    */
     alpha
 }
 
-pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo) -> f64 {
+pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo, pv: &mut Vec<move_gen::Move>, start_time: &Instant, time_limit: Duration) -> f64 {
     
     let mut movements = move_gen::move_gen(game);
 
@@ -195,10 +281,46 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }
 
     let mut beta = beta;
-    eval::order_moves(&mut movements);
+    let mut alpha = alpha;
+    /* 
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+
+    if game.transposition_table[index].zobrist_key == game.hash && game.transposition_table[index].depth >= depth_left{
+        match game.transposition_table[index].flag{
+            game::Flag::Exact => return game.transposition_table[index].value,
+            game::Flag::Lowerbound => alpha = alpha.max(game.transposition_table[index].value),
+            game::Flag::Upperbound => beta = beta.min(game.transposition_table[index].value),
+        }
+        if alpha >= beta {
+            return game.transposition_table[index].value;
+        }
+    }
+    */
+
+    let mut new_pv: Vec<move_gen::Move> = Vec::new();
+    eval::order_moves(&mut movements, &pv);
+    let mut first = true;
+
     for mut movement in movements {
+
+        if start_time.elapsed() >= time_limit {
+            return 100.0;
+        }
+
         make_move::make_move(game, &mut movement);
-        let score = alpha_beta_max(alpha, beta, depth_left - 1, game);
+        
+        let mut score;
+        if first{
+            score = alpha_beta_max(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit);
+            first = false;
+            //pv.push(movement);
+        } else {
+            score = alpha_beta_max(alpha, alpha + 1.0, depth_left - 1, game, &mut new_pv,start_time, time_limit);
+            if score > alpha && score < beta {
+                score = alpha_beta_max(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit);
+            }
+        }
+        
         unmake::unmake_move(game, movement);
 
         if score <= alpha {
@@ -207,91 +329,96 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
 
         if score < beta {
             beta = score;
+            pv.clear();
+            pv.push(movement);
+            pv.append(&mut new_pv);
         }
     }
+    /*
+    let flag = if beta <= alpha {
+        game::Flag::Upperbound
+    } else if beta >= beta {
+        game::Flag::Lowerbound
+    } else {
+        game::Flag::Exact
+    };
+
+    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+    
+    game.transposition_table[index].zobrist_key = game.hash;
+    game.transposition_table[index].flag = flag;
+    game.transposition_table[index].depth = depth_left;
+    game.transposition_table[index].value = alpha;
+    */
+
     beta
 }
 
-pub fn best_move(depth_left: i8, game: &mut game::GameInfo) -> move_gen::Move {
-    
-    let mut best_move = move_gen::Move{
-        origin: 0,
-        destiny: 0,
-        destiny_piece: piece::Piece::Empty,
-        promotion: None,
-    };
 
-    if depth_left == 0 {
-        return best_move;
-    }
-    
-    let maximizing = game.turn == game::Color::White;
-    let mut movements = move_gen::move_gen(game);
-    eval::order_moves(&mut movements);
-    let mut best_score = if maximizing {-10.0} else {10.0};
-    
-    for mut movement in movements {
-        make_move::make_move(game, &mut movement);
+pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, time_limit: Duration) -> Option<move_gen::Move> {
+    let mut best_move: Option<move_gen::Move> = None;
+    let start_time = Instant::now();
+    let mut pv: Vec<move_gen::Move> = Vec::new();
 
-        let score = if maximizing {
-            alpha_beta_min(-1.0, 1.0, depth_left - 1, game)
+    for depth in 1..=max_depth {
+        let alpha = -100.0;
+        let beta = 100.0;
+        let score;
+
+        if game.turn == game::Color::White {
+            score = alpha_beta_max(alpha, beta, depth, game, &mut pv, &start_time, time_limit);
         } else {
-            alpha_beta_max(-1.0, 1.0, depth_left - 1, game)
-        };
+            score = alpha_beta_min(alpha, beta, depth, game, &mut pv, &start_time, time_limit);
+        }
 
-        unmake::unmake_move(game, movement);
+        if pv.len() > 0 {
+            best_move = Some(pv[0]);
+        }
+        if score <= -1.0 || score >= 1.0 {
+            break;
+        }
 
-        if maximizing && score > best_score {
-            best_score = score;
-            best_move = movement;
-        } else if !maximizing && score < best_score {
-            best_score = score;
-            best_move = movement;
+        if start_time.elapsed() >= time_limit {
+            break;
         }
     }
 
     best_move
 }
 
-pub fn best_move_net(depth_left: i8, game: &mut game::GameInfo, net: &model::Net) -> (tch::Tensor, move_gen::Move) {
-
-    let mut best_move = move_gen::Move{
-        origin: 0,
-        destiny: 0,
-        promotion: None,
-        destiny_piece: piece::Piece::Empty,
-    };
-
-
-    if depth_left == 0 {
-        return (tch::Tensor::of_slice(&[0]),best_move)
-    } 
-
-    let maximizing = game.turn == game::Color::White;
-    let movements = move_gen::move_gen(game);
-    let mut best_score = if maximizing {tch::Tensor::of_slice(&[-10.0])} else {tch::Tensor::of_slice(&[10.0])};
-
-    for mut movement in movements {
-        make_move::make_move(game, &mut movement);
-
-        let score = if maximizing {
-            alpha_beta_min_net(tch::Tensor::of_slice(&[-1.0]), tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
+pub fn iterative_deepening_time_limit_net(
+    game: &mut game::GameInfo,
+    max_depth: i8,
+    time_limit: Duration,
+    net: &model::Net,
+    ) -> Option<move_gen::Move> {
+    let mut best_move: Option<move_gen::Move> = None;
+    let start_time = Instant::now();
+    let mut pv: Vec<move_gen::Move> = Vec::new();
+        
+    for depth in 1..=max_depth {
+        let alpha = -100.0;
+        let beta = 100.0;
+        let score;
+    
+        if game.turn == game::Color::White {
+            score = alpha_beta_max_net(alpha, beta, depth, game, &mut pv, &start_time, time_limit, net);
         } else {
-            alpha_beta_max_net(tch::Tensor::of_slice(&[-1.0]), tch::Tensor::of_slice(&[1.0]), depth_left - 1, game, net)
-        };
-
-        unmake::unmake_move(game, movement);
-
-        if maximizing && score.double_value(&[0]) > best_score.double_value(&[0])   {
-            best_score = score;
-            best_move = movement;
-        } else if !maximizing &&  score.double_value(&[0]) < best_score.double_value(&[0])   {
-            best_score = score;
-            best_move = movement;
+            score = alpha_beta_min_net(alpha, beta, depth, game, &mut pv, &start_time, time_limit, net);
+        }
+    
+        if pv.len() > 0 {
+            best_move = Some(pv[0]);
+        }
+        if score == -1.0 || score == 1.0 {
+            break;
+        }
+    
+        if start_time.elapsed() >= time_limit {
+            break;
         }
     }
-
-    (best_score,best_move)
+    
+    best_move
+    
 }
-
-

@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, BufReader, Write}, time::Duration,
 };
 
 use regex;
@@ -9,7 +9,7 @@ use tch::nn::{self};
 use crate::{
     eval, fen_reader, game::{self, GameInfo}, make_move, model,
     move_gen::{self, move_gen},
-    notation, unmake, alpha_beta_search
+    notation, unmake, alpha_beta_search::{self, iterative_deepening_time_limit_net}
 };
 
 const UNINITIALIZED: f64 = 10.0;
@@ -75,17 +75,20 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64) -> i64 {
+pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<GameInfo>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64) -> i64 {
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
-    let mut suite_results = OpenOptions::new().append(true).open("./suite9.txt").unwrap();
+    //let mut suite_results = OpenOptions::new().append(true).open("./suite9.txt").unwrap();
 
     total_score = 0;
 
     for (mut game, result) in games.iter_mut().zip(results.iter()) {
        
-        let (_,best_move) = tch::no_grad(|| alpha_beta_search::best_move_net(1,game, net));
+        let best_move = match net {
+            Some(net) => iterative_deepening_time_limit_net(game, 100, Duration::from_millis(100), net).unwrap(),
+            None => alpha_beta_search::iterative_deepening_time_limit(game, 100, Duration::from_millis(100)).unwrap(),
+        };
 
         for (movement, puntuaction) in result {
             if *movement == best_move {
@@ -94,9 +97,10 @@ pub fn test_model_net(net: &model::Net, suites: &mut (Vec<GameInfo>,Vec<Vec<(mov
             }
         }
     }
-    suite_results
-        .write_all(format!("Epoch:{} Score:{}\n", epoch, total_score).as_bytes())
-        .unwrap();
+    //suite_results
+    //    .write_all(format!("Epoch:{} Score:{}\n", epoch, total_score).as_bytes())
+    //    .unwrap();
+
     total_score
 }
 

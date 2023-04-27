@@ -1,7 +1,7 @@
 use std::{
     fs::{File, OpenOptions},
     io::{BufRead, BufReader, Write},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH, Duration},
     vec,
 };
 
@@ -137,7 +137,7 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(&net,&mut suites, epoch);
+            let score = suite::test_model_net(Some(&net),&mut suites, epoch);
             println!("Epoch: {} Score: {}", epoch, score);
 
             vs.save(format!("model_weights/9_hidden{}.pt", epoch))
@@ -179,7 +179,9 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
                 scores.push(score); 
             }else{
 
-                let (mut score, mut movement) = alpha_beta_search::best_move_net(DEPTH, game, net);
+                //let (mut score, mut movement) = alpha_beta_search::best_move_net(DEPTH, game, net);
+                let mut movement = alpha_beta_search::iterative_deepening_time_limit_net(game, DEPTH, Duration::from_millis(100000), net).unwrap();
+                let score = tch::Tensor::of_slice(&[0]);
                 make_move::make_move(game, &mut movement);
                 scores.push(score);
                 
@@ -225,12 +227,14 @@ fn bootstraping(
         if len == 0 {
             continue;
         }
-
+        /* 
         let mut score = if game.turn == game::Color::White {
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game)])
+            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game, vec![])])
         }else{
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game)])
+            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game, vec![])])
         };
+        */
+        let score = tch::Tensor::of_slice(&[0]);
         let mut prediction = net.forward_t(&pre_proccess(game), true);
 
         let loss = get_loss_mse(&score, &prediction);

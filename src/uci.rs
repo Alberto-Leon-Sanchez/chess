@@ -1,7 +1,8 @@
-use std::{process, io::{Write, Read}};
+use std::{process, io::{Write, Read, BufRead, BufReader}, time::Duration, thread};
 
 use crate::{move_gen, fen_writer, piece, game, fen_reader, model, alpha_beta_search, eval, make_move};
 
+#[derive(Debug)]
 pub enum WinSide {
     White,
     Black,
@@ -16,25 +17,29 @@ fn get_engine(engine_path: &str) -> process::Child {
         .expect("Failed to start engine")
 }
 
-pub fn play_game(engine_path: &str, elo: i64, color: game::Color, net: Option<model::Net>) -> Result<WinSide, Box<dyn std::error::Error>> {
+pub fn play_game(
+    engine_path: &str,
+    level: i64,
+    color: game::Color,
+    net: Option<model::Net>,
+    time_limit: Duration,
+) -> Result<WinSide, Box<dyn std::error::Error>> {
     let mut engine = get_engine(engine_path);
     let mut game = game::GameInfo::new();
     let mut moves: Vec<String> = Vec::new();
-    let regex_fen = regex::Regex::new(r"(?<=FEN:\s)[^ ]+ .*").unwrap();
 
-    let stdin = engine.stdin.as_mut().expect("Failed to open stdin");
-    let stdout = engine.stdout.as_mut().expect("Failed to open stdout");
-
-    setup_engine(stdin, stdout, elo)?;
+    let mut stdin = engine.stdin.as_mut().expect("Failed to open stdin");
+    let mut stdout = engine.stdout.as_mut().expect("Failed to open stdout");
+    
+    setup_engine(stdin, stdout, level)?;
 
     if color == game::Color::Black {
-        play_engine_turn(stdin, stdout, &regex_fen, &mut game, &mut moves)?;
+        play_engine_turn(stdin, stdout, &mut game, &mut moves, &time_limit)?;
     }
 
     loop {
-        
-        play_player_turn(stdin, &mut game, &mut moves, net.as_ref())?;
-        
+        play_player_turn(stdin, &mut game, &mut moves, net.as_ref(), &time_limit)?;
+
         match eval::is_game_over(&mut game) {
             Some(value) => {
                 if value == 1.0 {
@@ -48,7 +53,7 @@ pub fn play_game(engine_path: &str, elo: i64, color: game::Color, net: Option<mo
             None => (),
         }
 
-        play_engine_turn(stdin, stdout, &regex_fen, &mut game, &mut moves)?;
+        play_engine_turn(stdin, stdout,&mut game, &mut moves, &time_limit)?;
 
         match eval::is_game_over(&mut game) {
             Some(value) => {
@@ -65,37 +70,37 @@ pub fn play_game(engine_path: &str, elo: i64, color: game::Color, net: Option<mo
     }
 }
 
-fn setup_engine(stdin: &mut std::process::ChildStdin, stdout: &mut std::process::ChildStdout, elo: i64) -> Result<(), Box<dyn std::error::Error>> {
-    get(stdin, stdout)?;
+
+fn setup_engine(stdin: &mut std::process::ChildStdin, stdout: &mut std::process::ChildStdout, level: i64) -> Result<(), Box<dyn std::error::Error>> {
     put(stdin, "uci\n");
-    get(stdin, stdout)?;
-    put(stdin, &format!("setoption name Skill Level value {}\n", elo));
-    get(stdin, stdout)?;
+    get(stdin, stdout).unwrap();
+    put(stdin, &format!("setoption name Skill Level value {}\n", level));
     put(stdin, "ucinewgame\n");
-    get(stdin, stdout)?;
     put(stdin, "position startpos\n");
-    get(stdin, stdout)?;
 
     Ok(())
 }
 
-fn play_engine_turn(stdin: &mut std::process::ChildStdin, stdout: &mut std::process::ChildStdout, regex_fen: &regex::Regex, game: &mut game::GameInfo, moves: &mut Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    put(stdin, "go movetime 500\n");
-    let best_move = get(stdin, stdout)?.split_whitespace().last().unwrap().to_owned();
+fn play_engine_turn(stdin: &mut std::process::ChildStdin, stdout: &mut std::process::ChildStdout,game: &mut game::GameInfo, moves: &mut Vec<String>, time_limit: &Duration) -> Result<(), Box<dyn std::error::Error>> {
+    put(stdin, &format!("go movetime {}\n", time_limit.as_millis()));
+    thread::sleep(*time_limit);
+    let best_move = get(stdin, stdout).unwrap().split_whitespace().collect::<Vec<&str>>()[1].to_owned();
+    
     moves.push(best_move.clone());
-    put(stdin, &format!("position startpos moves {}\n", best_move));
+    let movements = moves.iter().map(|x| x.to_owned()).collect::<Vec<String>>().join(" ");
+    
+    put(stdin, &format!("position startpos moves {}\n", movements));
     put(stdin, "d\n");
-    let fen = get(stdin, stdout).unwrap();
-    let fen = regex_fen.captures(&fen).unwrap().get(0).unwrap().as_str();
-    fen_reader::read_fen_keep_transposition_table(fen, game);
+    let fen = get(stdin, stdout).unwrap(). replace("Fen: ", "");
+    fen_reader::read_fen_keep_transposition_table(&fen, game);
 
     Ok(())
 }
 
-fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameInfo, moves: &mut Vec<String>, net: Option<&model::Net>) -> Result<(), Box<dyn std::error::Error>> {
+fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameInfo, moves: &mut Vec<String>, net: Option<&model::Net>, time_limit: &Duration) -> Result<(), Box<dyn std::error::Error>> {
     let mut best_move = match net {
-        Some(net) => alpha_beta_search::best_move_net(3, game, net).1,
-        None => alpha_beta_search::best_move(5, game),
+        Some(net) => alpha_beta_search::iterative_deepening_time_limit_net(game, 100, *time_limit, net).unwrap(),
+        None => alpha_beta_search::iterative_deepening_time_limit(game, 100, *time_limit).unwrap(),
     };
     make_move::make_move(game, &mut best_move);
     let uci = move_to_uci(best_move);
@@ -106,22 +111,26 @@ fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameIn
 }
 
 fn get(output: &mut process::ChildStdin, input: &mut process::ChildStdout) -> Result<String, Box<dyn std::error::Error>> {
-    output.write_all("isready\n".as_bytes())?;
-    println!("engine:\n");
+
     let mut buffer = String::new();
+    let mut buf_reader = BufReader::new(input);
+
     loop {
-        input.read_to_string(&mut buffer)?;
-        if buffer.ends_with("readyok") {
+        buffer.clear();
+        buf_reader.read_line(&mut buffer)?;
+        if buffer.starts_with("bestmove") || buffer.starts_with("Fen:") || buffer.starts_with("uciok") || buffer.starts_with("No such option:") {
             break;
         }
-        println!("{}", buffer);
     }
+
     Ok(buffer)
 }
 
+
+
 fn put<'a>(mut output: &'a  process::ChildStdin, command: &'a str) -> (){
-    println!("you:\n");
     output.write_all(command.as_bytes()).expect("Failed to write to stdin");
+    thread::sleep(Duration::from_millis(25));
 }
 
 fn move_to_uci(movement: move_gen::Move) -> String{

@@ -167,17 +167,16 @@ const FLIP: [usize; 64] = [
     8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7,
 ];
 
+pub fn order_moves(moves: &mut Vec<move_gen::Move>, pv: &Vec<move_gen::Move>) {
 
-pub fn order_moves(moves: &mut Vec<move_gen::Move>) {
-    let mut index: usize = 0;
-
-    for movement in 0..moves.len() {
-        if moves[movement].destiny_piece != piece::Piece::Empty {
-            moves.swap(index, movement);
-            index += 1;
+    for (index,movement) in moves.iter().enumerate(){
+        if pv.contains(movement){
+            moves.swap(0, index);
+            break;
         }
     }
 }
+
 
 pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {
     let (_, attacks) = attack_gen::attack_gen(game, Some(&color));

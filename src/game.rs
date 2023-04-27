@@ -1,5 +1,6 @@
 use crate::fen_reader;
 use crate::move_gen;
+use crate::move_gen::Move;
 use crate::piece;
 
 const BLACK_KING: char = '\u{2654}';
@@ -18,9 +19,8 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
-//pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
+//pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 22);
 pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
-
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Color {
     White,
@@ -72,7 +72,6 @@ pub enum Flag {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Eval {
-    pub movement: move_gen::Move,
     pub depth: i8,
     pub zobrist_key: u64,
     pub flag: Flag,
@@ -82,12 +81,6 @@ pub struct Eval {
 impl Eval {
     pub fn new() -> Eval {
         Eval {
-            movement: move_gen::Move {
-                origin: 0,
-                destiny: 0,
-                destiny_piece: piece::Piece::Empty,
-                promotion: None,
-            },
             depth: 0,
             zobrist_key: 0,
             flag: Flag::Exact,
