@@ -1,4 +1,5 @@
 use crate::game;
+use crate::move_gen;
 use crate::piece::Piece;
 use crate::piece::PieceList;
 use crate::piece::PieceType;
@@ -54,7 +55,9 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
         half_move_clock,
         full_move,
         hash,
-        transposition_table: vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE + 1) as usize],
+        transposition_table: vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE) as usize],
+        historic_heuristic: [[[0; 120]; 120]; 2],
+        killer_move: [[move_gen::Move::new(); 2]; 20],
     }
 }
 

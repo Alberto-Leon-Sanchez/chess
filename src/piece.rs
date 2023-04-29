@@ -1,3 +1,5 @@
+use crate::eval;
+
 #[derive(Clone, Debug)]
 pub struct PieceList {
     pub pawns: Vec<i8>,
@@ -191,6 +193,18 @@ pub enum PieceType {
 }
 
 impl PieceType {
+
+    pub fn get_value(&self) -> i32 {
+        match self {
+            PieceType::Pawn => eval::MAT[0][eval::WP],
+            PieceType::Bishop => eval::MAT[0][eval::WB],
+            PieceType::King => eval::MAT[0][eval::WK],
+            PieceType::Queen => eval::MAT[0][eval::WQ],
+            PieceType::Rook => eval::MAT[0][eval::WR],
+            PieceType::Knight => eval::MAT[0][eval::WN],
+        }
+    }
+
     pub fn is_sliding(&self) -> bool {
         match self {
             PieceType::Rook => true,
@@ -220,4 +234,24 @@ pub enum Piece {
     Black(PieceType),
     Empty,
     Outside,
+}
+
+impl Piece{
+    pub fn get_value(&self) -> i32 {
+        let piece: PieceType = match self {
+            Piece::White(piece) => *piece,
+            Piece::Black(piece) => *piece,
+            _ => panic!("Error"),
+        };
+        
+        match piece {
+            PieceType::Pawn =>  eval::MAT[0][eval::WP],
+            PieceType::Bishop => eval::MAT[0][eval::WB],
+            PieceType::King => eval::MAT[0][eval::WK],
+            PieceType::Knight => eval::MAT[0][eval::WN],
+            PieceType::Queen => eval::MAT[0][eval::WQ],
+            PieceType::Rook => eval::MAT[0][eval::WR]
+        }
+
+    }
 }

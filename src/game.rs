@@ -19,8 +19,8 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
-//pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 22);
-pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
+pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 21);
+//pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Color {
     White,
@@ -55,6 +55,8 @@ pub struct GameInfo {
     pub full_move: i32,
     pub hash: u64,
     pub transposition_table: Vec<Eval>,
+    pub historic_heuristic: [[[usize; 120]; 120]; 2],
+    pub killer_move: [[Move; 2];20],
 }
 
 impl GameInfo{

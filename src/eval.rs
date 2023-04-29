@@ -5,26 +5,28 @@ use crate::attack_gen;
 use crate::game;
 use crate::game::Color;
 use crate::game::GameInfo;
+use crate::make_move;
 use crate::model;
 use crate::move_gen;
 use crate::move_gen::move_gen;
 use crate::piece;
 use crate::piece::Piece;
+use crate::unmake;
 
-const WK: usize = 0;
-const WQ: usize = 1;
-const WR: usize = 2;
-const WN: usize = 3;
-const WB: usize = 4;
-const WP: usize = 5;
-const BK: usize = 6;
-const BQ: usize = 7;
-const BR: usize = 8;
-const BN: usize = 9;
-const BB: usize = 10;
-const BP: usize = 11;
+pub const WK: usize = 0;
+pub const WQ: usize = 1;
+pub const WR: usize = 2;
+pub const WN: usize = 3;
+pub const WB: usize = 4;
+pub const WP: usize = 5;
+pub const BK: usize = 6;
+pub const BQ: usize = 7;
+pub const BR: usize = 8;
+pub const BN: usize = 9;
+pub const BB: usize = 10;
+pub const BP: usize = 11;
 
-const MAT: [[i32; 12]; 2] = [
+pub const MAT: [[i32; 12]; 2] = [
     [
         10000, 2521, 1270, 817, 836, 198, 10000, 2521, 1270, 817, 836, 198,
     ],
@@ -167,15 +169,34 @@ const FLIP: [usize; 64] = [
     8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7,
 ];
 
-pub fn order_moves(moves: &mut Vec<move_gen::Move>, pv: &Vec<move_gen::Move>) {
+pub fn order_moves(moves: &mut Vec<move_gen::Move>, pv: &Vec<move_gen::Move>, game: &mut game::GameInfo, ply:i8) {
+    let mut pvf: bool = false;
+    let mut move_scores: Vec<(usize, &move_gen::Move)> = Vec::new();
 
-    for (index,movement) in moves.iter().enumerate(){
-        if pv.contains(movement){
-            moves.swap(0, index);
-            break;
-        }
+    let side = if game.turn == game::Color::White { 0 } else { 1 };
+
+    for movement in moves.iter_mut(){
+
+        make_move::make_move(game, movement);
+        let hash = game.hash;
+        let index =(hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
+        unmake::unmake_move(game, *movement);
+        
+        let score = match *movement{
+            _ if !pvf && pv.contains(movement) => {pvf=true; 10000000},
+            _ if game.transposition_table[index].zobrist_key == hash => 1000000,
+            _ if movement.promotion.is_some() => movement.promotion.unwrap().get_value() as usize,
+            _ if movement.destiny_piece != piece::Piece::Empty => {(game.board[movement.origin as usize].get_value() - movement.destiny_piece.get_value() + 1001) as usize},
+            _ if game.killer_move[ply as usize][0] == *movement || game.killer_move[ply as usize][1] == *movement => 1000,
+            _ => game.historic_heuristic[side][movement.origin as usize][movement.destiny as usize]
+        };
+
+        move_scores.push((score, movement));
     }
-}
+
+    move_scores.sort_unstable_by_key(|&(score, _)| std::cmp::Reverse(score));
+    *moves = move_scores.into_iter().map(|(_, m)| *m).collect();
+}   
 
 
 pub fn check(game: &mut game::GameInfo, color: game::Color) -> bool {

@@ -29,6 +29,12 @@ impl PartialEq for Move {
             && self.destiny_piece == other.destiny_piece
             && self.promotion == other.promotion
     }
+    fn ne(&self, other: &Self) -> bool {
+        self.origin != other.origin
+            || self.destiny != other.destiny
+            || self.destiny_piece != other.destiny_piece
+            || self.promotion != other.promotion
+    }
 }
 
 impl Move {
