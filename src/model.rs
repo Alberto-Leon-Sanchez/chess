@@ -106,7 +106,7 @@ fn get_training_games() -> Vec<String> {
 pub fn train() -> () {
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-    
+
     let mut opt = nn::Adam::default().build(&vs, LR).unwrap();
 
     let mut suites = suite::get_suites();
@@ -137,7 +137,7 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(None,&mut suites, epoch);
+            let score = suite::test_model_net(Some(&net),&mut suites, epoch);
             println!("Epoch: {} Score: {}", epoch, score);
 
             vs.save(format!("model_weights/10_hidden{}.pt", epoch))
