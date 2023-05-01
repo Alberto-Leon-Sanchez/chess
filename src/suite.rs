@@ -79,7 +79,7 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<GameInfo>,Vec<
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
-    //let mut suite_results = OpenOptions::new().append(true).open("./suite9.txt").unwrap();
+    let mut suite_results = OpenOptions::new().append(true).open("./suite10.txt").unwrap();
 
     total_score = 0;
 
@@ -97,9 +97,9 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<GameInfo>,Vec<
             }
         }
     }
-    //suite_results
-    //    .write_all(format!("Epoch:{} Score:{}\n", epoch, total_score).as_bytes())
-    //    .unwrap();
+    suite_results
+        .write_all(format!("Epoch:{} Score:{}\n", epoch, total_score).as_bytes())
+        .unwrap();
 
     total_score
 }

@@ -10,11 +10,7 @@ fn main() {
         HASH.randomize();
     }
     /* 
-    tch::set_num_threads(4);
-    println!("{}",tch::get_num_threads());
-    model::train();
-    
-
+   
     let mut results:Vec<uci::WinSide> = vec![];
 
     println!("{:?}",uci::play_game("stockfish", 0, chess::game::Color::White, None, Duration::from_millis(2000)));
@@ -28,9 +24,8 @@ fn main() {
     .num_threads(10)
     .build_global()
     .unwrap();
-    let mut game = game::GameInfo::new();
-    println!("{:?}",alpha_beta_search::iterative_deepening_time_limit(&mut game, 100, Duration::from_millis(10000)));
-
-    
+    tch::set_num_threads(4);
+    println!("{}",tch::get_num_threads());
+    model::train();
 
 }

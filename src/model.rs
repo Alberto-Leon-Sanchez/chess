@@ -90,14 +90,14 @@ pub fn model(vs: nn::Path) -> Net {
     }
 }
 
-fn get_training_games() -> Vec<GameInfo> {
+fn get_training_games() -> Vec<String> {
     let mut games = vec![];
 
     let file = File::open("./training_fen.txt").unwrap();
     let reader = BufReader::new(file);
 
     for line in reader.lines(){
-        games.push(fen_reader::read_fen(&line.unwrap()));
+        games.push(line.unwrap());
     }
 
     games
@@ -111,22 +111,22 @@ pub fn train() -> () {
 
     let mut suites = suite::get_suites();
 
-    vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden30840.pt").unwrap())).unwrap();
+    //vs.load_from_stream(&mut BufReader::new(File::open("./model_weights/bootstraping_2_hidden30840.pt").unwrap())).unwrap();
     
     opt.zero_grad();
     let mut games = get_training_games();
 
     let mut writer = OpenOptions::new()
         .append(true)
-        .open("training_data/9_hidden.txt")
+        .open("training_data/10_hidden.txt")
         .unwrap();
 
     for epoch in 0..N_EPOCHS {
         let mut accumulated_loss = 0.0;
         
         opt.zero_grad();
-        tdl_train(&mut games, &net, &mut accumulated_loss);
-        //bootstraping(&mut games, &net, &mut accumulated_loss); 
+        //tdl_train(&mut games, &net, &mut accumulated_loss);
+        bootstraping(&mut games, &net, &mut accumulated_loss); 
         opt.step();
 
         opt.zero_grad();
@@ -137,17 +137,17 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(Some(&net),&mut suites, epoch);
+            let score = suite::test_model_net(None,&mut suites, epoch);
             println!("Epoch: {} Score: {}", epoch, score);
 
-            vs.save(format!("model_weights/9_hidden{}.pt", epoch))
+            vs.save(format!("model_weights/10_hidden{}.pt", epoch))
             .unwrap();
         }
 
     }
 }
 
-fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -> (){
+fn tdl_train(games: &mut Vec<String>, net: &Net, accumulated_loss: &mut f64) -> (){
     let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed.try_into().unwrap());
     let size = games.len();
@@ -155,6 +155,7 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
     for _ in 0..N_GAMES {
 
         let mut game = &mut games[rng.gen_range(0..size)].clone();
+        let mut game = &mut fen_reader::read_fen(&game);
         let mut movements = move_gen::move_gen(game);
         let len = movements.len();
         let mut scores:Vec<tch::Tensor> = vec![];
@@ -205,7 +206,7 @@ fn tdl_train(games: &mut Vec<GameInfo>, net: &Net, accumulated_loss: &mut f64) -
 }
 
 fn bootstraping(
-    games: &mut Vec<GameInfo>,
+    games: &mut Vec<String>,
     net: &Net,
     accumulated_loss: &mut f64,
 ) -> () {
@@ -220,6 +221,7 @@ fn bootstraping(
 
     for _ in 0..N_GAMES {
         let game = &mut games[rng.gen_range(0..len)].clone();
+        let game = &mut fen_reader::read_fen(game);
         
         let mut movements = move_gen::move_gen(game);
         let len = movements.len();
