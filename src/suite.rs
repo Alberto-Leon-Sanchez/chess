@@ -81,11 +81,12 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
     let results = &mut suites.1;
     let mut total_score: i64;
     let mut suite_results = OpenOptions::new().append(true).open("./suite10.txt").unwrap();
-
+    let tt = std::sync::Arc::new(std::sync::Mutex::new(vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE) as usize]));
     total_score = 0;
 
     for (mut gameS, result) in games.iter_mut().zip(results.iter()) {
-        let game = &mut fen_reader::read_fen_no_tt(&gameS);
+        let game = &mut fen_reader::read_fen_share_tt(&gameS, tt.clone());
+        fen_reader::invalidate_tt(game);
         let best_move = match net {
             Some(net) => iterative_deepening_time_limit_net(game, 1, Duration::from_millis(100), net).unwrap(),
             None => alpha_beta_search::iterative_deepening_time_limit(game, 1, Duration::from_millis(100)).unwrap(),
@@ -104,6 +105,7 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
 
     total_score
 }
+
 
 pub fn get_suites() -> (Vec<String>, Vec<Vec<(move_gen::Move, i64)>>) {
     let regex = regex::Regex::new("(([RBQKPN]?[1-8]?[a-h]?[x]?[a-h][1-8]([=][RBQKPN])?[+#]?=[0-9]*)?((O-O-O)?(O-O)?=[0-9]*)?)").unwrap();

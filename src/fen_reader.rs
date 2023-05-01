@@ -1,3 +1,7 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
+use crate::eval;
 use crate::game;
 use crate::move_gen;
 use crate::piece::Piece;
@@ -61,7 +65,7 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
     }
 }
 
-pub fn read_fen_no_tt(fen: &str) -> game::GameInfo{
+pub fn read_fen_share_tt(fen: &str, tt: Arc<Mutex<Vec<game::Eval>>>) -> game::GameInfo{
     let split: Vec<&str> = fen.split(' ').collect();
     let mut board: [Piece; 120] = [Piece::Outside; 120];
 
@@ -106,7 +110,65 @@ pub fn read_fen_no_tt(fen: &str) -> game::GameInfo{
         half_move_clock,
         full_move,
         hash,
-        transposition_table: std::sync::Arc::new(std::sync::Mutex::new(vec![game::Eval::new(); (1) as usize])),
+        transposition_table: tt,
+        historic_heuristic: std::sync::Arc::new(std::sync::Mutex::new([[[0; 120]; 120]; 2])),
+        killer_move: std::sync::Arc::new(std::sync::Mutex::new([[move_gen::Move::new(); 2]; 20])),
+    }
+}
+
+pub fn invalidate_tt(game: &mut game::GameInfo){
+    let mut tt = game.transposition_table.lock().unwrap();
+    for i in 0..tt.len(){
+        tt[i] = game::Eval::new();
+    }
+}
+
+pub fn read_fen_no_tt(fen: &str) -> game::GameInfo {
+    let split: Vec<&str> = fen.split(' ').collect();
+    let mut board: [Piece; 120] = [Piece::Outside; 120];
+
+    complete_board(&mut board);
+    set_pieces(&mut board, split[0]);
+
+    let (white_pieces, black_pieces) = get_piece_lists(&board);
+
+    let turn = get_turn(split[1]);
+
+    let castling = get_castling(split[2]);
+
+    let en_passant = get_en_passant(split[3]);
+
+    let half_move_clock = get_half_move_clock(split[4]);
+
+    let full_move;
+    if split.len() == 6 {
+        full_move = get_full_move(split[5]);
+    } else {
+        full_move = 0;
+    }
+    let hash;
+
+    unsafe {
+        hash = HASH.get_hash(
+            &black_pieces,
+            &white_pieces,
+            &turn,
+            &castling.last().unwrap(),
+            &en_passant.last().unwrap(),
+        );
+    }
+
+    game::GameInfo {
+        board,
+        white_pieces,
+        black_pieces,
+        turn,
+        castling,
+        en_passant,
+        half_move_clock,
+        full_move,
+        hash,
+        transposition_table: std::sync::Arc::new(std::sync::Mutex::new(vec![game::Eval::new(); 1])),
         historic_heuristic: std::sync::Arc::new(std::sync::Mutex::new([[[0; 120]; 120]; 2])),
         killer_move: std::sync::Arc::new(std::sync::Mutex::new([[move_gen::Move::new(); 2]; 20])),
     }
