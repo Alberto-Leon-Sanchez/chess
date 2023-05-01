@@ -354,17 +354,19 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }   
     
     let mut tt = game.transposition_table.lock().unwrap();
-    if alpha <= alpha {
-        tt[index].flag = game::Flag::Upperbound;
-    } else if alpha >= beta {
-        tt[index].flag = game::Flag::Lowerbound;
-    } else {
-        tt[index].flag = game::Flag::Exact;
+    if depth_left >= tt[index].depth{
+        if alpha <= alpha {
+            tt[index].flag = game::Flag::Upperbound;
+        } else if alpha >= beta {
+            tt[index].flag = game::Flag::Lowerbound;
+        } else {
+            tt[index].flag = game::Flag::Exact;
+        }
+        
+        tt[index].zobrist_key = game.hash;
+        tt[index].depth = depth_left;
+        tt[index].value = value;
     }
-    
-    tt[index].zobrist_key = game.hash;
-    tt[index].depth = depth_left;
-    tt[index].value = value;
     drop(tt);
     
     alpha
@@ -521,17 +523,19 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }
 
     let mut tt = game.transposition_table.lock().unwrap();
-    if beta <= alpha {
-        tt[index].flag = game::Flag::Upperbound
-    } else if beta >= beta {
-        tt[index].flag = game::Flag::Lowerbound
-    } else {
-        tt[index].flag = game::Flag::Exact
-    }
+    if depth_left >= tt[index].depth{
+        if beta <= alpha {
+            tt[index].flag = game::Flag::Upperbound
+        } else if beta >= beta {
+            tt[index].flag = game::Flag::Lowerbound
+        } else {
+            tt[index].flag = game::Flag::Exact
+        }
 
-    tt[index].zobrist_key = game.hash;
-    tt[index].depth = depth_left;
-    tt[index].value = value;
+        tt[index].zobrist_key = game.hash;
+        tt[index].depth = depth_left;
+        tt[index].value = value;
+    }
     drop(tt);
 
     beta
