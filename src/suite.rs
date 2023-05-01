@@ -89,7 +89,7 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
         fen_reader::invalidate_tt(game);
         let best_move = match net {
             Some(net) => iterative_deepening_time_limit_net(game, 1, Duration::from_millis(100), net).unwrap(),
-            None => alpha_beta_search::iterative_deepening_time_limit(game, 1, Duration::from_millis(100)).unwrap(),
+            None => alpha_beta_search::iterative_deepening_time_limit(game, 1, Duration::from_millis(100)).0.unwrap(),
         };
 
         for (movement, puntuaction) in result {

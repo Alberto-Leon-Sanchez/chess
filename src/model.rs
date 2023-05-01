@@ -28,7 +28,7 @@ const N_EPOCHS: i64 = i64::MAX;
 const N_GAMES: i64 = 1;
 const LAMBDA: f64 = 0.5;
 const MAX_NOT_IMPROVED: i64 = 80;
-const DEPTH: i8 = 9;
+const DEPTH: i8 = 100;
 const UNINITIALIZED: f64 = 100.00;
 const LR: f64 = 0.00001;
 const EPSILON: i64 = 10;
@@ -230,11 +230,7 @@ fn bootstraping(
             continue;
         }
         
-        let score = if game.turn == game::Color::White {
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game, &mut vec![], &Instant::now(), &Duration::from_millis(4000), 1,DEPTH)])
-        }else{
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game, &mut vec![], &Instant::now(), &Duration::from_millis(4000), 1,DEPTH)])
-        };
+        let score = tch::Tensor::of_slice(&[alpha_beta_search::iterative_deepening_time_limit(game, DEPTH, Duration::from_millis(4000)).1]);
         
         let prediction = net.forward_t(&pre_proccess(game), true);
 

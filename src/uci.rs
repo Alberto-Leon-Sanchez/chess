@@ -100,7 +100,7 @@ fn play_engine_turn(stdin: &mut std::process::ChildStdin, stdout: &mut std::proc
 fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameInfo, moves: &mut Vec<String>, net: Option<&model::Net>, time_limit: &Duration) -> Result<(), Box<dyn std::error::Error>> {
     let mut best_move = match net {
         Some(net) => alpha_beta_search::iterative_deepening_time_limit_net(game, 100, *time_limit, net).unwrap(),
-        None => alpha_beta_search::iterative_deepening_time_limit(game, 100, *time_limit).unwrap(),
+        None => alpha_beta_search::iterative_deepening_time_limit(game, 100, *time_limit).0.unwrap(),
     };
     make_move::make_move(game, &mut best_move);
     let uci = move_to_uci(best_move);

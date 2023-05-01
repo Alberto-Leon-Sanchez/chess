@@ -200,7 +200,7 @@ pub fn alpha_beta_min_net(
 pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo, pv: &mut Vec<move_gen::Move>,start_time: &Instant, time_limit: &Duration, ply: i8, max_depth: i8) -> f64 {
 
     let mut movements = move_gen::move_gen(game);
-
+    
     if depth_left == 0 || movements.len() == 0 {
         return eval::static_evaluate(game);
     }
@@ -535,15 +535,15 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
 }
 
 
-pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, time_limit: Duration) -> Option<move_gen::Move> {
+pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, time_limit: Duration) -> (Option<(move_gen::Move)>,f64) {
     let mut best_move: Option<move_gen::Move> = None;
-    let start_time = Instant::now();
     let mut pv: Vec<move_gen::Move> = Vec::new();
+    let mut score = 0.0;
+    let start_time = Instant::now();
 
     for depth in 1..=max_depth {
         let alpha = -100.0;
         let beta = 100.0;
-        let score;
 
         if game.turn == game::Color::White {
             score = alpha_beta_max(alpha, beta, depth, game, &mut pv, &start_time, &time_limit, 1, depth);
@@ -564,7 +564,7 @@ pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, 
         println!("depth: {} time: {}",depth, start_time.elapsed().as_millis());
     }
 
-    best_move
+    (best_move,score)
 }
 
 pub fn iterative_deepening_time_limit_net(
