@@ -106,7 +106,7 @@ fn get_training_games() -> Vec<String> {
 pub fn train() -> () {
     let mut vs = nn::VarStore::new(tch::Device::Cpu);
     let net = model(vs.root());
-
+    
     let mut opt = nn::Adam::default().build(&vs, LR).unwrap();
 
     let mut suites = suite::get_suites();
