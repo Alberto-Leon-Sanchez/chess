@@ -1,7 +1,7 @@
 use std::{
     fs::{File, OpenOptions},
     io::{BufRead, BufReader, Write},
-    time::{SystemTime, UNIX_EPOCH, Duration},
+    time::{SystemTime, UNIX_EPOCH, Duration, Instant},
     vec,
 };
 
@@ -28,7 +28,7 @@ const N_EPOCHS: i64 = i64::MAX;
 const N_GAMES: i64 = 1;
 const LAMBDA: f64 = 0.5;
 const MAX_NOT_IMPROVED: i64 = 80;
-const DEPTH: i8 = 2;
+const DEPTH: i8 = 9;
 const UNINITIALIZED: f64 = 100.00;
 const LR: f64 = 0.00001;
 const EPSILON: i64 = 10;
@@ -227,15 +227,14 @@ fn bootstraping(
         if len == 0 {
             continue;
         }
-        /* 
-        let mut score = if game.turn == game::Color::White {
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game, vec![])])
+        
+        let score = if game.turn == game::Color::White {
+            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_max(-1.0, 1.0, DEPTH, game, &mut vec![], &Instant::now(), &Duration::from_millis(4000), 1,DEPTH)])
         }else{
-            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game, vec![])])
+            tch::Tensor::of_slice(&[alpha_beta_search::alpha_beta_min(-1.0, 1.0, DEPTH, game, &mut vec![], &Instant::now(), &Duration::from_millis(4000), 1,DEPTH)])
         };
-        */
-        let score = tch::Tensor::of_slice(&[0]);
-        let mut prediction = net.forward_t(&pre_proccess(game), true);
+        
+        let prediction = net.forward_t(&pre_proccess(game), true);
 
         let loss = get_loss_mse(&score, &prediction);
         *accumulated_loss += loss.f_double_value(&[0]).unwrap();
