@@ -12,13 +12,6 @@ use crate::move_gen;
 use crate::piece;
 use crate::unmake;
 
-const UNINITIALIZED: f64 = 100.00;
-const PARALLEL_DEPTH:i8 = 10;
-
-static mut hash_access: u64 = 0;
-static mut alpha_cuts: u64 = 0;
-static mut beta_cuts: u64 = 0;
-
 pub fn alpha_beta_max_net(
     alpha: f64,
     beta: f64,
@@ -245,7 +238,7 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
         if pv_score >= beta {
             if pv_move.destiny_piece == piece::Piece::Empty {
                 let side = if game.turn == game::Color::White { 0 } else { 1 };
-                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left * 2) as usize;
+                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left) as usize;
                 let mut killer_move = game.killer_move.lock().unwrap();
 
                 if killer_move[ply as usize][0] != pv_move {
@@ -287,7 +280,7 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
             if score >= beta {
                 if movement.destiny_piece == piece::Piece::Empty {
                     let side = if game.turn == game::Color::White { 0 } else { 1 };
-                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] += (depth_left * 2) as usize;
+                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] += (depth_left) as usize;
                     let mut killer_move = game.killer_move.lock().unwrap();
                     if killer_move[ply as usize][0] != movement {
                         killer_move[ply as usize][1] = killer_move[ply as usize][0];
@@ -331,7 +324,7 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 if movement.destiny_piece == piece::Piece::Empty{
 
                     let side = if game.turn == game::Color::White {0} else {1};
-                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] +=( depth_left * 2 ) as usize;
+                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] +=( depth_left) as usize;
                     let mut killer_move = game.killer_move.lock().unwrap();
                     if killer_move[ply as usize][0] != movement{
                         killer_move[ply as usize][1] = killer_move[ply as usize][0];
@@ -413,7 +406,7 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
         if pv_score <= alpha {
             if pv_move.destiny_piece == piece::Piece::Empty {
                 let side = if game.turn == game::Color::White { 0 } else { 1 };
-                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left * 2) as usize;
+                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left) as usize;
                 let mut killer_move = game.killer_move.lock().unwrap();
 
                 if killer_move[ply as usize][0] != pv_move {
@@ -455,7 +448,7 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
             if score <= alpha {
                 if movement.destiny_piece == piece::Piece::Empty {
                     let side = if game.turn == game::Color::White { 0 } else { 1 };
-                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] += (depth_left * 2) as usize;
+                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] += (depth_left) as usize;
                     let mut killer_move = game.killer_move.lock().unwrap();
 
                     if killer_move[ply as usize][0] != movement {
@@ -501,7 +494,7 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 if movement.destiny_piece == piece::Piece::Empty{
     
                     let side = if game.turn == game::Color::White {0} else {1};
-                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] +=( depth_left * 2) as usize;
+                    game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize] +=( depth_left) as usize;
                     let mut killer_move = game.killer_move.lock().unwrap();
     
                     if killer_move[ply as usize][0] != movement{
