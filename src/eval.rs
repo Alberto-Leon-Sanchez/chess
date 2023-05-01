@@ -181,15 +181,16 @@ pub fn order_moves(moves: &mut Vec<move_gen::Move>, pv: &Vec<move_gen::Move>, ga
         let hash = game.hash;
         let index =(hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
         unmake::unmake_move(game, *movement);
-        
+        let killer_move = game.killer_move.lock().unwrap();
         let score = match *movement{
             _ if !pvf && pv.contains(movement) => {pvf=true; 10000000},
-            _ if game.transposition_table[index].zobrist_key == hash => 1000000,
+            _ if game.transposition_table.lock().unwrap()[index].zobrist_key == hash => 1000000,
             _ if movement.promotion.is_some() => movement.promotion.unwrap().get_value() as usize,
             _ if movement.destiny_piece != piece::Piece::Empty => {(game.board[movement.origin as usize].get_value() - movement.destiny_piece.get_value() + 1001) as usize},
-            _ if game.killer_move[ply as usize][0] == *movement || game.killer_move[ply as usize][1] == *movement => 1000,
-            _ => game.historic_heuristic[side][movement.origin as usize][movement.destiny as usize]
+            _ if killer_move[ply as usize][0] == *movement || killer_move[ply as usize][1] == *movement => 1000,
+            _ => game.historic_heuristic.lock().unwrap()[side][movement.origin as usize][movement.destiny as usize]
         };
+        drop(killer_move);
 
         move_scores.push((score, movement));
     }

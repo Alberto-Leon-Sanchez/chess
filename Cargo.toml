@@ -30,4 +30,5 @@ criterion = "0.4.0"
 rand = "0.8.5"
 tch = "0.10.1"
 regex = "1.7.1"
-
+rayon = "1.7.0"
+atomic_float = "0.1.0"

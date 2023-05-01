@@ -55,9 +55,9 @@ pub fn read_fen(fen: &str) -> game::GameInfo {
         half_move_clock,
         full_move,
         hash,
-        transposition_table: vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE) as usize],
-        historic_heuristic: [[[0; 120]; 120]; 2],
-        killer_move: [[move_gen::Move::new(); 2]; 20],
+        transposition_table: std::sync::Arc::new(std::sync::Mutex::new(vec![game::Eval::new(); (game::TRANSPOSITION_TABLE_SIZE) as usize])),
+        historic_heuristic: std::sync::Arc::new(std::sync::Mutex::new([[[0; 120]; 120]; 2])),
+        killer_move: std::sync::Arc::new(std::sync::Mutex::new([[move_gen::Move::new(); 2]; 20])),
     }
 }
 

@@ -1,10 +1,15 @@
-use chess::api;
+use chess::{api, zobrist_hashing::HASH};
 use http_types::headers::HeaderValue;
 use std::env;
 use tide::security::{CorsMiddleware, Origin};
 
 #[async_std::main]
 async fn main() -> tide::Result<()> {
+
+    unsafe {
+        HASH.randomize();
+    }
+
     env::set_var("RUST_BACKTRACE", "0");
 
     let mut app = tide::new();

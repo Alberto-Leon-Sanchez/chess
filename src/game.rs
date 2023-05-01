@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::sync::Mutex;
+
 use crate::fen_reader;
 use crate::move_gen;
 use crate::move_gen::Move;
@@ -19,7 +22,7 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
-pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 21);
+pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 //pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Color {
@@ -43,7 +46,7 @@ impl Color {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone,Debug)]
 pub struct GameInfo {
     pub board: [piece::Piece; 120],
     pub white_pieces: piece::PieceList,
@@ -54,9 +57,9 @@ pub struct GameInfo {
     pub half_move_clock: Vec<u16>,
     pub full_move: i32,
     pub hash: u64,
-    pub transposition_table: Vec<Eval>,
-    pub historic_heuristic: [[[usize; 120]; 120]; 2],
-    pub killer_move: [[Move; 2];20],
+    pub transposition_table: Arc<Mutex<Vec<Eval>>>,
+    pub historic_heuristic: Arc<Mutex<[[[usize; 120]; 120]; 2]>>,
+    pub killer_move: Arc<Mutex<[[Move; 2];20]>>,
 }
 
 impl GameInfo{

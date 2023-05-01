@@ -99,9 +99,9 @@ pub async fn get_best(request: tide::Request<()>) -> tide::Result {
 
     let mut vs = tch::nn::VarStore::new(tch::Device::Cpu);
     let net = model::model(vs.root());
-    vs.load_from_stream(&mut BufReader::new(File::open("./final_weights/8_hidden168000.pt").unwrap())).unwrap();
+    //vs.load_from_stream(&mut BufReader::new(File::open("./final_weights/8_hidden168000.pt").unwrap())).unwrap();
 
-    let mut movement = alpha_beta_search::iterative_deepening_time_limit_net(&mut game, 100, Duration::from_millis(depth.try_into().unwrap()),&net).unwrap();
+    let mut movement = alpha_beta_search::iterative_deepening_time_limit(&mut game, 30, Duration::from_millis(depth.try_into().unwrap())).unwrap();
     make_move::make_move(&mut game, &mut movement);
     let fen = fen_writer::write_fen(&game);
 

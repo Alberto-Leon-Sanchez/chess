@@ -4,6 +4,8 @@ use chess::{model, zobrist_hashing::HASH, training_parser, fen_reader, alpha_bet
 use tch;
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
+    env::var("RUST_MIN_STACK").unwrap_or_else(|_| "167772160".to_string());
+    
     unsafe {
         HASH.randomize();
     }
@@ -20,7 +22,12 @@ fn main() {
     println!("{}",suite::test_model_net(None, &mut suites, 0));
     */
 
-    //let mut game = fen_reader::read_fen("5r1k/rb3ppB/p3pb2/1p5Q/5q2/8/PP3PPP/1R1R2K1 w - - 0 19");
+    //let mut game = fen_reader::read_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
+    rayon::ThreadPoolBuilder::new()
+    .stack_size(8388608)
+    .num_threads(10)
+    .build_global()
+    .unwrap();
     let mut game = game::GameInfo::new();
     println!("{:?}",alpha_beta_search::iterative_deepening_time_limit(&mut game, 100, Duration::from_millis(10000)));
 
