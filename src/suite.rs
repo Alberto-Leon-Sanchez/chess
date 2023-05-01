@@ -34,7 +34,7 @@ pub fn test_model() -> () {
         total_score = 0;
 
         for (mut gameS, result) in games.iter_mut().zip(results.iter()) {
-            let mut game = &mut fen_reader::read_fen(&gameS);
+            let mut game = &mut fen_reader::read_fen_no_tt(&gameS);
             let moves = move_gen(&mut game);
             let mut max: f64 = UNINITIALIZED;
             let mut best_move: move_gen::Move = move_gen::Move::new();
@@ -85,10 +85,10 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
     total_score = 0;
 
     for (mut gameS, result) in games.iter_mut().zip(results.iter()) {
-        let game = &mut fen_reader::read_fen(&gameS);
+        let game = &mut fen_reader::read_fen_no_tt(&gameS);
         let best_move = match net {
-            Some(net) => iterative_deepening_time_limit_net(game, 100, Duration::from_millis(100), net).unwrap(),
-            None => alpha_beta_search::iterative_deepening_time_limit(game, 100, Duration::from_millis(100)).unwrap(),
+            Some(net) => iterative_deepening_time_limit_net(game, 1, Duration::from_millis(100), net).unwrap(),
+            None => alpha_beta_search::iterative_deepening_time_limit(game, 1, Duration::from_millis(100)).unwrap(),
         };
 
         for (movement, puntuaction) in result {
@@ -127,7 +127,7 @@ pub fn get_suites() -> (Vec<String>, Vec<Vec<(move_gen::Move, i64)>>) {
                 .map(|x| x.to_string())
                 .collect::<Vec<String>>();
 
-            let mut game = fen_reader::read_fen(line.get(0).unwrap());
+            let mut game = fen_reader::read_fen_no_tt(line.get(0).unwrap());
             let mut result: Vec<(move_gen::Move, i64)> = vec![];
 
             for capture in regex.captures_iter(&line[1]) {
