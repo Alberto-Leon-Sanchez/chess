@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File, OpenOptions},
-    io::{BufRead, BufReader, Write}, time::Duration,
+    io::{BufRead, BufReader, Write}, time::Duration, thread,
 };
 
 use regex;
@@ -9,7 +9,7 @@ use tch::nn::{self};
 use crate::{
     eval, fen_reader, game::{self, GameInfo}, make_move, model,
     move_gen::{self, move_gen},
-    notation, unmake, alpha_beta_search::{self, iterative_deepening_time_limit_net}
+    notation, unmake, alpha_beta_search::{self, iterative_deepening_time_limit_net}, uci
 };
 
 const UNINITIALIZED: f64 = 10.0;
@@ -88,8 +88,8 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
         let game = &mut fen_reader::read_fen_share_tt(&gameS, tt.clone());
         fen_reader::invalidate_tt(game);
         let best_move = match net {
-            Some(net) => iterative_deepening_time_limit_net(game, 1, Duration::from_millis(100), net).unwrap(),
-            None => alpha_beta_search::iterative_deepening_time_limit(game, 1, Duration::from_millis(100)).0.unwrap(),
+            Some(net) => iterative_deepening_time_limit_net(game, 100, Duration::from_millis(100), net).unwrap(),
+            None => alpha_beta_search::iterative_deepening_time_limit(game, 100, Duration::from_millis(100)).0.unwrap(),
         };
 
         for (movement, puntuaction) in result {
@@ -156,3 +156,37 @@ pub fn get_suites() -> (Vec<String>, Vec<Vec<(move_gen::Move, i64)>>) {
     (games, results)
 }
 
+
+pub fn test_engine(path: &str, time_limit: Duration) -> i64{
+
+    let mut engine = uci::get_engine(path);
+    let mut stdin = engine.stdin.as_mut().expect("Failed to open stdin");
+    let mut stdout = engine.stdout.as_mut().expect("Failed to open stdout");
+    let (mut games, results) = get_suites();
+    let mut score = 0;
+
+    uci::put(stdin, "uci\n");
+    uci::get(stdin, stdout).unwrap();
+    uci::put(stdin, "ucinewgame\n");
+
+    for (mut gameS, result) in games.iter_mut().zip(results.iter()) {
+
+        uci::put(stdin, &format!("position fen {}\n", gameS));
+        uci::put(stdin, &format!("go movetime {}\n", time_limit.as_millis()));
+        thread::sleep(time_limit);
+        let best_move = uci::get(stdin, stdout).unwrap().split_whitespace().collect::<Vec<&str>>()[1].to_owned();
+        let mut game = fen_reader::read_fen_no_tt(&gameS);
+
+        let best_move = uci::uci_to_move(&best_move, &mut game).unwrap();
+
+        for (movement, puntuaction) in result {
+            if *movement == best_move {
+                score += puntuaction;
+                break;
+            }
+        }
+    }
+
+
+    score
+}

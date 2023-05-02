@@ -561,7 +561,6 @@ pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, 
         if start_time.elapsed() >= time_limit {
             break;
         }
-        println!("depth: {} time: {}",depth, start_time.elapsed().as_millis());
     }
 
     (best_move,score)

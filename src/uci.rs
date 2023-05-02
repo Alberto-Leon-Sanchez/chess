@@ -1,6 +1,6 @@
 use std::{process, io::{Write, Read, BufRead, BufReader}, time::Duration, thread};
 
-use crate::{move_gen, fen_writer, piece, game, fen_reader, model, alpha_beta_search, eval, make_move};
+use crate::{move_gen, fen_writer, piece, game, fen_reader, model, alpha_beta_search, eval, make_move, api};
 
 #[derive(Debug)]
 pub enum WinSide {
@@ -9,7 +9,7 @@ pub enum WinSide {
     Draw,
 }
 
-fn get_engine(engine_path: &str) -> process::Child {
+pub fn get_engine(engine_path: &str) -> process::Child {
     process::Command::new(engine_path)
         .stdin(process::Stdio::piped())
         .stdout(process::Stdio::piped())
@@ -53,7 +53,7 @@ pub fn play_game(
             None => (),
         }
 
-        play_engine_turn(stdin, stdout,&mut game, &mut moves, &time_limit)?;
+        play_engine_turn(stdin, stdout,&mut game, &mut moves, &Duration::from_millis(5))?;
 
         match eval::is_game_over(&mut game) {
             Some(value) => {
@@ -69,7 +69,6 @@ pub fn play_game(
         }
     }
 }
-
 
 fn setup_engine(stdin: &mut std::process::ChildStdin, stdout: &mut std::process::ChildStdout, level: i64) -> Result<(), Box<dyn std::error::Error>> {
     put(stdin, "uci\n");
@@ -110,7 +109,7 @@ fn play_player_turn(stdin: &mut std::process::ChildStdin,game: &mut game::GameIn
     Ok(())
 }
 
-fn get(output: &mut process::ChildStdin, input: &mut process::ChildStdout) -> Result<String, Box<dyn std::error::Error>> {
+pub fn get(output: &mut process::ChildStdin, input: &mut process::ChildStdout) -> Result<String, Box<dyn std::error::Error>> {
 
     let mut buffer = String::new();
     let mut buf_reader = BufReader::new(input);
@@ -118,6 +117,7 @@ fn get(output: &mut process::ChildStdin, input: &mut process::ChildStdout) -> Re
     loop {
         buffer.clear();
         buf_reader.read_line(&mut buffer)?;
+        println!("{}",buffer);
         if buffer.starts_with("bestmove") || buffer.starts_with("Fen:") || buffer.starts_with("uciok") || buffer.starts_with("No such option:") {
             break;
         }
@@ -128,7 +128,7 @@ fn get(output: &mut process::ChildStdin, input: &mut process::ChildStdout) -> Re
 
 
 
-fn put<'a>(mut output: &'a  process::ChildStdin, command: &'a str) -> (){
+pub fn put<'a>(mut output: &'a  process::ChildStdin, command: &'a str) -> (){
     output.write_all(command.as_bytes()).expect("Failed to write to stdin");
     thread::sleep(Duration::from_millis(25));
 }
@@ -154,4 +154,20 @@ fn move_to_uci(movement: move_gen::Move) -> String{
     }
 
     uci
+}
+
+pub fn uci_to_move(movement: &str, game: &mut game::GameInfo) -> Result<move_gen::Move, Box<dyn std::error::Error>>{
+
+    let origin_letter = fen_reader::letter_to_column(movement.chars().nth(0).unwrap());
+    let origin:i8 = (fen_reader::row_column_to_index(&movement.chars().nth(1).unwrap().to_digit(10).unwrap(), &origin_letter) -10).try_into().unwrap();
+    
+    let destiny_letter = fen_reader::letter_to_column(movement.chars().nth(2).unwrap());
+    let destiny:i8 = (fen_reader::row_column_to_index(&movement.chars().nth(3).unwrap().to_digit(10).unwrap(), &destiny_letter)- 10).try_into().unwrap();
+    
+    for m in move_gen::move_gen(game) {
+        if m.origin == origin && m.destiny == destiny {
+            return Ok(m);
+        }
+    }
+    Err("Invalid movement".into())
 }
