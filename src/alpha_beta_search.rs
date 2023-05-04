@@ -92,7 +92,6 @@ pub fn alpha_beta_max_net(
         game::Flag::Exact
     };
     
-    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
     let mut tt = game.transposition_table.lock().unwrap();
 
     tt[index].zobrist_key = game.hash;
@@ -115,6 +114,10 @@ pub fn alpha_beta_min_net(
     net: &model::Net,
     ) -> f64 {
         
+    if start_time.elapsed() >= time_limit {
+        return 100.0;
+    }
+
     let mut movements = move_gen::move_gen(game);
     
     if depth_left == 0 || movements.len() == 0 {
@@ -144,10 +147,6 @@ pub fn alpha_beta_min_net(
     eval::order_moves(&mut movements, &pv, game, 1);
     
     for mut movement in movements {
-    
-        if start_time.elapsed() >= time_limit {
-            return 100.0;
-        }
     
         make_move::make_move(game, &mut movement);
     
@@ -183,7 +182,6 @@ pub fn alpha_beta_min_net(
         game::Flag::Exact
     };
     
-    let index = (game.hash % game::TRANSPOSITION_TABLE_SIZE) as usize;
     let mut tt = game.transposition_table.lock().unwrap();
 
     tt[index].zobrist_key = game.hash;
@@ -198,6 +196,10 @@ pub fn alpha_beta_min_net(
    
 
 pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo, pv: &mut Vec<move_gen::Move>,start_time: &Instant, time_limit: &Duration, ply: i8, max_depth: i8) -> f64 {
+
+    if start_time.elapsed() >= *time_limit {
+        return -100.0;
+    }
 
     let mut movements = move_gen::move_gen(game);
     
@@ -222,40 +224,10 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }
     drop(tt);
 
-    let mut new_pv: Vec<move_gen::Move> = Vec::new();
     let mut first = false;
-    let mut value = -100.0;
 
     eval::order_moves(&mut movements, &pv, game, ply);
-    if depth_left == max_depth{
-
-        let mut pv_move = movements.remove(0);
-        let mut new_pv: Vec<move_gen::Move> = Vec::new();
-        make_move::make_move(game, &mut pv_move);
-        let pv_score = alpha_beta_min(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, ply + 1, max_depth);
-        unmake::unmake_move(game, pv_move);
-
-        if pv_score >= beta {
-            if pv_move.destiny_piece == piece::Piece::Empty {
-                let side = if game.turn == game::Color::White { 0 } else { 1 };
-                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left) as usize;
-                let mut killer_move = game.killer_move.lock().unwrap();
-
-                if killer_move[ply as usize][0] != pv_move {
-                    killer_move[ply as usize][1] = killer_move[ply as usize][0];
-                    killer_move[ply as usize][0] = pv_move;
-                }
-            }
-            return beta;
-        }
-
-        if pv_score > alpha {
-            alpha = pv_score;
-            pv.clear();
-            pv.push(pv_move);
-            pv.append(&mut new_pv);
-            value = pv_score;
-        }
+    if depth_left > 1{
         
         let result: Vec<_> = movements
             .into_par_iter()
@@ -265,9 +237,9 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
 
                 make_move::make_move(&mut game_clone, &mut movement);
 
-                let mut score = alpha_beta_min(beta - 1.0, beta, depth_left - 1, &mut game_clone, &mut new_pv, start_time, time_limit, ply + 1, max_depth);
-                if score < beta && score > beta - 1.0 {
-                    score = alpha_beta_min(alpha, beta, depth_left - 1, &mut game_clone, &mut new_pv, start_time, time_limit, ply + 1, max_depth);
+                let mut score = alpha_beta_min(beta - 1.0, beta, depth_left - 1, &mut game_clone, &mut new_pv, start_time, time_limit, ply+1, max_depth);
+                if score > alpha && score < beta {
+                    score = alpha_beta_min(alpha, beta, depth_left - 1, &mut game_clone, &mut new_pv, start_time, time_limit, ply+1, max_depth);
                 }
 
                 unmake::unmake_move(&mut game_clone, movement);
@@ -287,6 +259,9 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                         killer_move[ply as usize][0] = movement;
                     }
                 }
+
+                game.store_tt(index, game::Flag::Lowerbound, score, depth_left);
+
                 return beta;
             }
 
@@ -295,19 +270,15 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 pv.clear();
                 pv.push(movement);
                 pv.append(&mut new_pv);
-                value = score;
+                game.store_tt(index, game::Flag::Exact, alpha, depth_left);
             }
         }
 
     }else{
         for mut movement in movements {
-
-            if start_time.elapsed() >= *time_limit {
-                return -100.0;
-            }
-
+            let mut new_pv: Vec<move_gen::Move> = Vec::new();
             make_move::make_move(game, &mut movement);
-            
+
             let mut score;
             if first{
                 score = alpha_beta_min(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, ply+1, max_depth);
@@ -330,8 +301,8 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                         killer_move[ply as usize][1] = killer_move[ply as usize][0];
                         killer_move[ply as usize][0] = movement;
                     }
-
                 }
+                game.store_tt(index, game::Flag::Lowerbound, score, depth_left);
 
                 return beta;
             }
@@ -341,32 +312,20 @@ pub fn alpha_beta_max(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 pv.clear();
                 pv.push(movement);
                 pv.append(&mut new_pv);
-                value = score;
+                game.store_tt(index, game::Flag::Exact, alpha, depth_left);
             }
         }
     }   
-    
-    let mut tt = game.transposition_table.lock().unwrap();
-    if depth_left >= tt[index].depth{
-        if alpha <= alpha {
-            tt[index].flag = game::Flag::Upperbound;
-        } else if alpha >= beta {
-            tt[index].flag = game::Flag::Lowerbound;
-        } else {
-            tt[index].flag = game::Flag::Exact;
-        }
         
-        tt[index].zobrist_key = game.hash;
-        tt[index].depth = depth_left;
-        tt[index].value = value;
-    }
-    drop(tt);
-    
     alpha
 }
 
 pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::GameInfo, pv: &mut Vec<move_gen::Move>, start_time: &Instant, time_limit: &Duration, ply: i8, max_depth: i8) -> f64 {
     
+    if start_time.elapsed() >= *time_limit {
+        return 100.0;
+    }
+
     let mut movements = move_gen::move_gen(game);
 
     if depth_left == 0 || movements.len() == 0{
@@ -390,41 +349,11 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
     }
     drop(tt);
     
-    let mut value = 100.0;
-    let mut new_pv: Vec<move_gen::Move> = Vec::new();
     eval::order_moves(&mut movements, &pv, game, ply);
     let mut first = true;
 
-    if depth_left == max_depth{
-
-        let mut pv_move = movements.remove(0);
-        let mut new_pv: Vec<move_gen::Move> = Vec::new();
-        make_move::make_move(game, &mut pv_move);
-        let pv_score = alpha_beta_max(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, ply + 1, max_depth);
-        unmake::unmake_move(game, pv_move);
-
-        if pv_score <= alpha {
-            if pv_move.destiny_piece == piece::Piece::Empty {
-                let side = if game.turn == game::Color::White { 0 } else { 1 };
-                game.historic_heuristic.lock().unwrap()[side][pv_move.origin as usize][pv_move.destiny as usize] += (depth_left) as usize;
-                let mut killer_move = game.killer_move.lock().unwrap();
-
-                if killer_move[ply as usize][0] != pv_move {
-                    killer_move[ply as usize][1] = killer_move[ply as usize][0];
-                    killer_move[ply as usize][0] = pv_move;
-                }
-            }
-            return alpha;
-        }
-
-        if pv_score < beta {
-            beta = pv_score;
-            pv.clear();
-            pv.push(pv_move);
-            pv.append(&mut new_pv);
-            value = pv_score;
-        }
-
+    if depth_left > 1{
+        
         let result: Vec<_> = movements
         .into_par_iter()
         .map(|mut movement| {
@@ -456,6 +385,9 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                         killer_move[ply as usize][0] = movement;
                     }
                 }
+
+                game.store_tt(index, game::Flag::Upperbound, score, depth_left);
+                
                 return alpha;
             }
 
@@ -464,19 +396,14 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 pv.clear();
                 pv.push(movement);
                 pv.append(&mut new_pv);
-                value = score;
+                game.store_tt(index, game::Flag::Exact, beta, depth_left);
             }
         }
     }else{
 
         for mut movement in movements {
-
-            if start_time.elapsed() >= *time_limit {
-                return 100.0;
-            }
-    
+            let mut new_pv: Vec<move_gen::Move> = Vec::new();
             make_move::make_move(game, &mut movement);
-            
             let mut score;
             if first{
                 score = alpha_beta_max(alpha, beta, depth_left - 1, game, &mut new_pv, start_time, time_limit, ply+1, max_depth);
@@ -502,6 +429,9 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                         killer_move[ply as usize][0] = movement;
                     }
                 }
+
+                game.store_tt(index, game::Flag::Upperbound, score, depth_left);
+    
                 return alpha; 
             }
     
@@ -510,27 +440,12 @@ pub fn alpha_beta_min(alpha: f64, beta: f64, depth_left: i8, game: &mut game::Ga
                 pv.clear();
                 pv.push(movement);
                 pv.append(&mut new_pv);
-                value = score;
+                game.store_tt(index, game::Flag::Exact, beta, depth_left)
             }
         }
     }
 
-    let mut tt = game.transposition_table.lock().unwrap();
-    if depth_left >= tt[index].depth{
-        if beta <= alpha {
-            tt[index].flag = game::Flag::Upperbound
-        } else if beta >= beta {
-            tt[index].flag = game::Flag::Lowerbound
-        } else {
-            tt[index].flag = game::Flag::Exact
-        }
-
-        tt[index].zobrist_key = game.hash;
-        tt[index].depth = depth_left;
-        tt[index].value = value;
-    }
-    drop(tt);
-
+ 
     beta
 }
 
@@ -561,6 +476,7 @@ pub fn iterative_deepening_time_limit(game: &mut game::GameInfo, max_depth: i8, 
         if start_time.elapsed() >= time_limit {
             break;
         }
+        //println!("{},{}",depth,start_time.elapsed().as_millis());
     }
 
     (best_move,score)

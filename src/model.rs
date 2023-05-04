@@ -32,6 +32,7 @@ const DEPTH: i8 = 100;
 const UNINITIALIZED: f64 = 100.00;
 const LR: f64 = 0.00001;
 const EPSILON: i64 = 10;
+const TIME_LIMIT:u64 = 1000;
 
 #[derive(Debug)]
 pub struct Net {
@@ -137,7 +138,7 @@ pub fn train() -> () {
             .write_all(format!("{} {}\n", epoch, accumulated_loss).as_bytes())
             .unwrap();
         
-            let score = suite::test_model_net(Some(&net),&mut suites, epoch);
+            let score = suite::test_model_net(Some(&net),&mut suites, epoch, Duration::from_millis(TIME_LIMIT));
             println!("Epoch: {} Score: {}", epoch, score);
 
             vs.save(format!("model_weights/10_hidden{}.pt", epoch))

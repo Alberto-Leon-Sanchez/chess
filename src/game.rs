@@ -22,7 +22,7 @@ const WHITE_PAWN: char = '\u{265F}';
 
 const EMPTY: char = '\u{25A1}';
 
-pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 21);
+pub const TRANSPOSITION_TABLE_SIZE: u64 = u64::pow(2, 24);
 //pub const TRANSPOSITION_TABLE_SIZE: u64 = 1;
 #[derive(Clone, PartialEq, Eq, Debug, Copy)]
 pub enum Color {
@@ -66,6 +66,17 @@ impl GameInfo{
     pub fn new() -> GameInfo{
         fen_reader::read_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     }
+
+    pub fn store_tt(&self, index: usize, flag: Flag, value: f64, depth_left: i8) {
+        let mut table = self.transposition_table.lock().unwrap();
+        if depth_left > table[index].depth{
+            table[index].flag = flag;
+            table[index].value = value;
+            table[index].depth = depth_left;
+            table[index].zobrist_key = self.hash;
+        }
+    }
+
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -10,8 +10,6 @@ fn main() {
         HASH.randomize();
     }
     /* 
-   
-    let mut results:Vec<uci::WinSide> = vec![];
 
     let mut suites = suite::get_suites();
     println!("{}",suite::test_model_net(None, &mut suites, 0));
@@ -20,18 +18,21 @@ fn main() {
     model::train();
     */
 
-    //let mut game = fen_reader::read_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ");
     rayon::ThreadPoolBuilder::new()
     .stack_size(8388608)
-    .num_threads(10)
+    .num_threads(12)
     .build_global()
     .unwrap();
-    println!("{:?}",uci::play_game("stockfish", 0, chess::game::Color::White, None, Duration::from_millis(3500)));
 
     //println!("{}", suite::test_engine("stockfish", Duration::from_millis(100)));
-    //println!("{}", suite::test_model_net(None, &mut suite::get_suites(), 0))
-    //let mut game = game::GameInfo::new();
-    //println!("{:?}",iterative_deepening_time_limit(&mut game, 100, Duration::from_millis(30000)));
+    let mut game = game::GameInfo::new();
+    //println!("{:?}",iterative_deepening_time_limit(&mut game, 100, Duration::from_millis(10000)));
+    println!("{}", suite::test_model_net(None, &mut suite::get_suites(), 0, Duration::from_millis(100)));
+    println!("{}", suite::test_model_net(None, &mut suite::get_suites(), 0, Duration::from_millis(500)));
+    println!("{}", suite::test_model_net(None, &mut suite::get_suites(), 0, Duration::from_millis(1000)));
+
+
+    
 
 
 }

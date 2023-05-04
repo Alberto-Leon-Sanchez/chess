@@ -76,7 +76,7 @@ pub fn test_model() -> () {
     }
 }
 
-pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64) -> i64 {
+pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Vec<(move_gen::Move,i64)>>), epoch: i64, time_limit: Duration) -> i64 {
     let games = &mut suites.0;
     let results = &mut suites.1;
     let mut total_score: i64;
@@ -88,8 +88,8 @@ pub fn test_model_net(net: Option<&model::Net>, suites: &mut (Vec<String>,Vec<Ve
         let game = &mut fen_reader::read_fen_share_tt(&gameS, tt.clone());
         fen_reader::invalidate_tt(game);
         let best_move = match net {
-            Some(net) => iterative_deepening_time_limit_net(game, 100, Duration::from_millis(100), net).unwrap(),
-            None => alpha_beta_search::iterative_deepening_time_limit(game, 100, Duration::from_millis(100)).0.unwrap(),
+            Some(net) => iterative_deepening_time_limit_net(game, 100, time_limit, net).unwrap(),
+            None => alpha_beta_search::iterative_deepening_time_limit(game, 100, time_limit).0.unwrap(),
         };
 
         for (movement, puntuaction) in result {
